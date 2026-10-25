@@ -9,8 +9,8 @@ All documents were downloaded on 2026-10-25.
 | Folder | Document | Version | Source |
 |---|---|---|---|
 | `protocol/` | `vento-smart-home-connection-guide.pdf` - Connection to a "Smart Home" system, VENTO, connection guide (English) | PDF created 2026-03-19 | [blaubergventilatoren.net](https://blaubergventilatoren.net/download/vento-expert-a100-1-s10-w-v2-manual-14758.pdf) |
-| `duka-one-pro-50-plus/` | `brugermanual-da.pdf` - Brugermanual for DUKA One Pro 50+ (Danish) | Version 1.0, November 2018 | [res.cloudinary.com](https://res.cloudinary.com/evoleska/image/upload/v1550217067/product/1699519.pdf), a retailer's copy |
-| `duka-one-pro-50-s-wifi/` | `brugermanual-da.pdf` - Brugermanual DUKA One Pro 50 S Wi-Fi (Danish) | PDF created 2025-08-08 | [res.cloudinary.com](https://res.cloudinary.com/evoleska/image/upload/v1759831699/k5mr5ewrvolozqk7vbr6.pdf), a retailer's copy |
+| `duka-one-pro-50-plus/` | `user-manual-da.pdf` - User manual for the DUKA One Pro 50+, in Danish; no English edition found | Version 1.0, November 2018 | [res.cloudinary.com](https://res.cloudinary.com/evoleska/image/upload/v1550217067/product/1699519.pdf), a retailer's copy |
+| `duka-one-pro-50-s-wifi/` | `user-manual-da.pdf` - User manual for the DUKA One Pro 50 S Wi-Fi, in Danish; no English edition found | PDF created 2025-08-08 | [res.cloudinary.com](https://res.cloudinary.com/evoleska/image/upload/v1759831699/k5mr5ewrvolozqk7vbr6.pdf), a retailer's copy |
 
 Not found:
 - **Duka publishes no description of the unit's protocol.** The protocol is the one Blauberg
