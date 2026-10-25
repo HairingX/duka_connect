@@ -1,0 +1,62 @@
+number,hex,functions,name,values,size,page,note
+1,0x0001,R/W/RW,Unit on/off,0 off; 1 on; 2 invert,1,7,
+2,0x0002,R/W/RW/INC/DEC,Speed number,1-3 speed 1-3; 255 manual speed (0x0044),1,7,
+6,0x0006,R,Boost mode status,0 off; 1 on,1,7,
+7,0x0007,R/W/RW/INC/DEC,Timer mode (timers in 0x0302 and 0x0303),0 off; 1 night; 2 party,1,7,
+11,0x000B,R,Countdown of the timer mode,byte 1 seconds 0-59; byte 2 minutes 0-59; byte 3 hours 0-23,3,7,
+15,0x000F,R/W/RW,Humidity sensor activation,0 off; 1 on; 2 invert,1,7,
+20,0x0014,R/W/RW,Relay sensor activation,0 off; 1 on; 2 invert,1,7,
+22,0x0016,R/W/RW,0-10 V sensor activation,0 off; 1 on; 2 invert,1,7,not on VENTO Expert A30 W V.2
+25,0x0019,R/W/RW/INC/DEC,Humidity threshold setpoint,40-80 %RH,1,7,
+36,0x0024,R,Current RTC battery voltage,0-5000 mV,2,7,
+37,0x0025,R,Current humidity,0-100 %RH,1,7,
+45,0x002D,R,Current 0-10 V sensor signal,0-100 %,1,7,not on VENTO Expert A30 W V.2
+50,0x0032,R,Current relay sensor state,0 off; 1 on,1,7,
+58,0x003A,R/W/RW/INC/DEC,Supply fan speed at speed 1,10-255,1,7,only VENTO Expert A50-1 W V.3
+59,0x003B,R/W/RW/INC/DEC,Exhaust fan speed at speed 1,10-255,1,7,only VENTO Expert A50-1 W V.3
+60,0x003C,R/W/RW/INC/DEC,Supply fan speed at speed 2,10-255,1,7,only VENTO Expert A50-1 W V.3
+61,0x003D,R/W/RW/INC/DEC,Exhaust fan speed at speed 2,10-255,1,7,only VENTO Expert A50-1 W V.3
+62,0x003E,R/W/RW/INC/DEC,Supply fan speed at speed 3,10-255,1,7,only VENTO Expert A50-1 W V.3
+63,0x003F,R/W/RW/INC/DEC,Exhaust fan speed at speed 3,10-255,1,7,only VENTO Expert A50-1 W V.3
+68,0x0044,R/W/RW/INC/DEC,Fan speed in the manual speed mode,0-255,1,7,
+74,0x004A,R,Fan 1 speed,0-5000 rpm,2,7,
+75,0x004B,R,Fan 2 speed,0-5000 rpm,2,7,
+99,0x0063,R/W/RW/INC/DEC,Filter replacement timer setup,70-365 days,2,7,only VENTO Expert A50-1 W V.3
+100,0x0064,R,Countdown to filter replacement,byte 1 minutes 0-59; byte 2 hours 0-23; byte 3 days 0-181,3,8,
+101,0x0065,W,Reset the countdown to filter replacement,any byte,1,8,
+102,0x0066,R/W/RW/INC/DEC,Boost mode deactivation delay,0-60 minutes,1,8,
+111,0x006F,R/W/RW,RTC time,byte 1 seconds; byte 2 minutes; byte 3 hours,3,8,
+112,0x0070,R/W/RW,RTC calendar,byte 1 day of month 1-31; byte 2 weekday 1-7; byte 3 month 1-12; byte 4 year 0-99,4,8,
+114,0x0072,R/W/RW,Weekly schedule mode,0 off; 1 on; 2 invert,1,8,
+119,0x0077,R/W/RW,Schedule setup,byte 1 weekday (0 all and 8 Mon-Fri and 9 Sat-Sun write only); byte 2 period 1-4; byte 3 speed (0 standby; 1-3); byte 4 reserved; byte 5 minutes to end of period; byte 6 hours to end of period,6,8,a read gives the size with 0xFE 0x02 and names the weekday and period
+124,0x007C,R,Device search: the unit's ID,text of 0-9 and A-F,16,8,
+125,0x007D,R/W/RW,Device password,text of 0-9 a-z A-Z,0-8,8,
+126,0x007E,R,Machine hours,byte 1 minutes; byte 2 hours; bytes 3-4 days 0-65535,4,8,
+128,0x0080,W,Reset alarms,any byte,1,8,
+131,0x0083,R,Alarm/warning indicator,0 none; 1 alarm (highest priority); 2 warning,1,8,
+133,0x0085,R/W/RW,Cloud server operation permission,0 off; 1 on; 2 invert,1,8,
+134,0x0086,R,Controller base firmware version and date,byte 1 major; byte 2 minor; byte 3 day; byte 4 month; bytes 5-6 year,6,9,
+135,0x0087,W,Restore factory settings,any byte,1,9,
+136,0x0088,R,Filter replacement indicator,0 not required; 1 replace filter,1,9,
+148,0x0094,R/W/RW/INC/DEC,Wi-Fi operation mode,1 client; 2 access point,1,9,
+149,0x0095,R/W/RW,Wi-Fi name in client mode,text,1-32,9,
+150,0x0096,R/W/RW,Wi-Fi password,text,8-64,9,
+153,0x0099,R/W/RW,Wi-Fi encryption,48 open; 50 WPA_PSK; 51 WPA2_PSK; 52 WPA_WPA2_PSK,1,9,
+154,0x009A,R/W/RW/INC/DEC,Wi-Fi channel,1-13,1,9,
+155,0x009B,R/W/RW,Wi-Fi DHCP,0 static; 1 DHCP; 2 invert,1,9,
+156,0x009C,R/W/RW,Wi-Fi IP address,4 bytes,4,9,
+157,0x009D,R/W/RW,Wi-Fi subnet mask,4 bytes,4,9,
+158,0x009E,R/W/RW,Wi-Fi gateway,4 bytes,4,9,
+160,0x00A0,W,Apply new Wi-Fi parameters and leave setup mode,any byte,1,9,
+162,0x00A2,W,Discard new Wi-Fi parameters and leave setup mode,any byte,1,9,
+163,0x00A3,R,Current Wi-Fi IP address,4 bytes,4,9,
+183,0x00B7,R/W/RW/INC/DEC,Ventilator operation mode,0 ventilation; 1 heat recovery; 2 supply,1,9,
+184,0x00B8,R/W/RW/INC/DEC,0-10 V sensor threshold setpoint,5-100 %,1,9,not on VENTO Expert A30 W V.2
+185,0x00B9,R,Unit type,3 VENTO Expert A50-1/A85-1/A100-1 W V.2; 4 VENTO Expert Duo A30-1 W V.2; 5 VENTO Expert A30 W V.2; 14 VENTO Style; 26 VENTO inHOME (old); 27 VENTO inHOME 100; 28 VENTO inHOME 160,2,9,
+298,0x012A,R/W/RW,Restore the fan speeds of every mode to factory defaults,1 execute,1,9,
+770,0x0302,R/W/RW,Night mode timer setpoint,byte 1 minutes; byte 2 hours,2,9,
+771,0x0303,R/W/RW,Party mode timer setpoint,byte 1 minutes; byte 2 hours,2,10,
+772,0x0304,R,Humidity sensor status,0 below setpoint; 1 over setpoint,1,10,
+773,0x0305,R,0-10 V sensor status,0 below setpoint; 1 over setpoint,1,10,not on VENTO Expert A30 W V.2
+810,0x032A,R/W/RW,Boost in passive ventilation mode,0 off; 1 on; 2 invert,1,10,only TF Atmo
+811,0x032B,R/W/RW,Passive ventilation mode (overrides 0x00B7),0 off; 1 on; 2 invert,1,10,only TF Atmo

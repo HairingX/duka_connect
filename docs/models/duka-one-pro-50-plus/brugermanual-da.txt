@@ -1,0 +1,1035 @@
+DUKA ONE
+  NOVEMBER 2018
+
+
+                  Brugermanual for
+                  DUKA One Pro 50+
+                  Ventilationsaggregat med varmegenvinding
+Brugermanual for                                                                                                                      Brugermanual version 1.0
+DUKA ONE PRO 50 +                                                                                                                             November 2018
+
+
+
+INDHOLD:                                                                                                            SIDE
+Indhold  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 2
+Introduktion  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 2
+Pakkeliste  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 2
+Anvendelse  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 3
+Sikkerhedskrav .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 4
+Brug  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 4
+Tekniske data  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 5
+Hvordan virker aggregatet  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 6
+Montage og opsætning  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 8
+EL tilslutning  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 11
+EL diagrammer  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 11
+Aggregatindstillinger  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 11
+Indstilling af kontrolpanel  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 12
+Styring af aggregatet .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 13
+Vedligeholdelse  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 16
+Fejl håndtering  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 18
+Opbevaring og transport regler  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 19
+Garantibestemmelser  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . side 19
+
+
+
+INTRODUKTION
+Denne brugermanual indeholder teknisk beskrivelse, bruger- og servicemanual samt tekniske data og installationsguide for aggregat
+DUKA One Pro 50+.
+
+
+
+
+PAKKELISTE
+•        Aggregat indedel
+•        Aggregat udedel (stormskærm)
+•        Lydisoleringsmåtte
+•        Veksler
+•        500 mm rør
+•        Monteringskit
+•        Opsætningsskabelon
+•        Fjernbetjening
+•        Brugermanual
+
+
+
+
+                                                                                                                               2
+                                                                                           www.dukaventilation.dk
+
+
+ANVENDELSE
+Aggregatet er designet til at spare på varmen ved hjælp af varmegenvindingsprincippet. Aggregatet indgår som energibesparende del
+i huset, kontorer, hoteller, skoler etc. Aggregatet kan ikke alene bruges som varmekilde.
+Aggregatet er designet til permanent at udskifte luften i lokalet.
+Aggregatet er designet til vægmontering.
+Aggregatet er beregnet til kontinuerlig drift.
+Luften til aggregatet må ikke indeholde: antændelige dampe, eksplosiv støv/dampe, fordampning af kemikalier, groft støv, sod, olie,
+klæbende substans, fiberrigt materiale, patogene eller andre skadelige stoffer.
+
+
+
+
+VIGTIGT INDEN INSTALLATION:
+•   Læs og forstå brugermanualen, før aggregatet monteres og tages i brug.
+•   Når aggregatet monteres, skal alle lokale og nationale bygningsreglementer overholdes.
+•   Læs omhyggeligt advarslerne som er nævnt i brugermanualen og sæt dig ind i gældende sikkerheds reglement.
+•   Manglende kendskab til sikkerhedsreglementet og advarsler kan føre til skade på person eller beskadige aggregatet.
+•   Gem brugermanualen, så du altid kan læse i den.
+•   I det tilfælde at aggregatet skifter ejermand, vedlæg da brugermanualen.
+
+
+
+
+                                                                   3
+Brugermanual for
+DUKA ONE PRO 50 +
+
+
+OPSÆTNINGS- & SIKKERHEDSFORANSTALTNINGER
+•    Pak aggregatet forsigtigt ud.
+•    Brug ikke aggregatet udenfor den specifikke angivne temperatur skala. Brug ikke aggregatet i aggressive miljøer eller miljøer med
+     eksplosive farer.
+•    Følg alle elektriske sikkerhedsregler ved installation af aggregatet.
+•    Uautoriseret afkortning af el-kablers længder er ikke tilladt. Sørg for, at kablerne ikke bliver knækket.
+•    Afbryd strømmen til aggregatet før montering og reparationer.
+
+
+SIKKERHED
+Betjening
+Betjen og servicere ikke aggregat og styring med våde hænder.
+Lad ikke børn betjene aggregatet.
+
+Rengøring
+Vask ikke aggregatet i vand, beskyt elektriske dele mod vand.
+
+Servicering
+Åben ikke aggregatet når det kører. Afbryd først strømmen.
+
+Anvendelse
+Brug kun aggregatet til rumventilation. Tilslut ikke tørretumbler eller lign. udstyr til aggregatet.
+Hold eksplosive og let antændelige væsker væk fra aggregatet.
+Bloker ikke aggregatets kanal, når det kører.
+Lad ikke luftstrømme fra aggregatet have retning mod åbne flammer eller lign.
+
+
+
+                               AGGREGATET MÅ KUN BETJENES AF INSTRUEREDE PERSONER
+
+
+
+
+                                                                       4
+                                                                                                                   www.dukaventilation.dk
+
+
+TEKNISKE DATA
+Aggregatet er designet til brug indendørs i temperaturer fra 1°C til 40°C. og en relativ luftfugtighed på op til 97 %. Ind- og udsugningsluften
+skal være mellem -20°C op til 50°C.
+
+IP klassificeringen som omhandler faste objekter og væsker:
+•     IP 24 for aggregatet opsat med det medfølgende rør.
+
+Aggregatet er under konstant udvikling og derfor kan der forekomme opdateringer i de tekniske data for de forskellige modeller.
+Den seneste dokumentation kan altid findes på hjemmesiden www.dukaventilation.dk
+
+                                                           Rørlængde
+
+                                                           270-500 mm
+
+
+
+                                                                            160
+
+
+
+
+                                                           Front panel
+
+                                                Udvendig stormskærm
+
+
+
+ MÅL PÅ INDENDØRS DELEN (MM)
+
+                                                                      207
+
+
+
+
+                                                                                            105
+                                                 138
+
+
+  285
+                                                                                            137
+
+
+
+
+                    235                 71                                     85
+
+
+
+
+ MÅL PÅ UDENDØRS DELEN (MM)
+                                                                                    194
+                                                                      17                          17
+
+                                                                 17                                    17
+                                                                                                            98
+  250
+
+
+
+
+                                                                                     Ø165
+                                                                                                                  232
+                                                                                                            134
+
+
+
+
+                                                                 15                                    15
+                                                                      50
+
+
+
+
+                                                                                                  50
+
+
+
+
+                     215                       60                                   188
+
+
+
+
+                                                                           5
+Brugermanual for
+DUKA ONE PRO 50 +
+
+HVORDAN VIRKER AGGREGATET?
+DUKA ONE består af en indendørs del, en veksler placeret i murgennemføringen, lydisoleringmåtte, filtre samt en udendørs del. Selve
+varmegenvindingen foregår i veksleren, som er beskyttet af filtrene mod støv og snavs. Disse produkter er vores bud på, hvordan vi i
+fremtiden kan opnå energibesparelser i boliger, samtidig med at vi sørger for optimal udluftning. Aggregatet, der sikrer den fornødne
+skiftevise ind- og udblæsning, er af støjhensyn placeret på den udvendige side af veksleren i murgennemføringen. Udendørs delen
+beskytter aggregatet mod indtrængende vand og vind.
+
+
+                                                        En kraftig lydisolering                               Den udvendige stormskærm
+                                                        sikrer den fornødne dæmpning                          er udført med beskyttelsesgitter. Herved sikres den
+                                                        af lyden.                                             fornødne luftgennemstrømning samtidig med at større
+                                                                                                              objekter holdes udenfor.
+
+
+             Veksleren
+             Dens forholdsmæssig store overflade
+             sikrer optimal energioverførsel         Murgennemføringen.
+             mellem den varme udsugningsluft         Udført i stærkt plastik.
+             og den kolde tilførte friskluft. Hele
+             konstruktionen er udformet sådan,
+             at en enkel lavenergimotor håndter-
+             er både udsugningen og indblæsnin-
+             gen. Det sikrer en stor besparelse
+             samt en høj genanvendelsesgrad.
+   Bagparten
+   af indendørs delen indeholder
+   klemrække til EL tilslutning og
+   kontrolpanel / printkortet.
+
+
+
+
+   Indvendig front.
+   På den indvendige side er enheden
+   udformet i et diskret design, så den
+   passer til de fleste vægge. Fronten er
+   aftagelig, så filtrene kan skiftes.
+
+
+
+
+OPBYGNINGEN AF SELVE VEKSLER-ENHEDEN
+
+
+                                                            Filtre
+                                                            Sikrer at luftstrømmene filtreres
+                                                            forsvarligt samt at veksleren
+                                                            beskyttes.
+
+
+
+
+                    Veksleren                               Ventilator
+                    Sikrer meget høj                        Sikrer den rette
+                    varmegenvinding                         luftstrøm
+
+
+
+
+                                                                                        Kabelsko
+                                                                                        Forbinder motor og styringen
+
+
+
+                                                                                6
+                                                                                                           www.dukaventilation.dk
+
+
+HVORDAN VIRKER DUKA ONE
+Ventilation med indblæsning af friskluft                                                                              +20˚С
+
+
+Om sommeren kan det være behageligt at blæse                                    -7˚С
+
+
+
+
+                                                                                                                                LU
+frisk luft ind i boligen uden at den bliver forvarmet
+
+
+
+
+                                                                                                                                   F
+                                                                                                                                  TU
+                                                                                                                                   DS
+af veksleren. Om natten opnås der yderligere en
+
+
+
+
+                                                                                                                                       UG
+                                                                                                                      70 sec.
+behagelig kølende effekt.
+
+
+
+
+                                                                                                                                       NIN
+                                                                                                                                        G
+Ventilation med udluftning
+                                                                                                   +17˚С                                     +20˚С
+
+I denne funktion anvendes aggregatet kun til
+                                                           -10˚С                                               -7˚С
+udsugning af boligens brugte luft. Kan med fordel
+anvendes, hvis man ønsker at opnå en hurtig
+
+
+
+
+                                                                          SEL
+udluftning. Har men flere enheder installeret i
+
+
+
+
+                                                                           ØR
+                                                                                       70 sec.
+boligen, er det en fordel om sommeren at kombi-
+
+
+
+
+                                                                            ILF    T
+nere indblæsning og udluftning. Dette kan gøres
+
+
+
+
+                                                                                FTU
+                                                                                       L
+ved at vælge indblæsning på værelser og soverum
+                                                                                                                      +17˚С
+og udsugning i stuen. Herved opnås en kølende
+effekt om natten.
+                                                                                           -10˚С
+
+Varmegenvinding
+
+I denne funktion genanvendes energien fra indetemperaturen til forvarmning af den tilførte friske luft udefra. Dette sker ved at ventilere
+gentagende i cyklusser:
+
+Cyklus 1
+
+Varm brugt luft suges ud af lokalet. Mens den passerer veksleren, oplagres varmen og fugten i den keramiske veksler. Herved genan-
+vendes varmen. I 70 sekunder overføres varmen til veksleren , hvorefter aggregatet skifter retning til frisklufttilførsel.
+
+Cyklus 2
+
+Ren og frisk luft udefra blæses igennem veksleren og forvarmes af indetemperaturen, der er lagret i veksleren. I 70 sekunder overfø-
+res varmen fra veksleren til indblæsningsluften, hvorefter aggregatet skifter retning til udsugnings cyklus igen.
+
+
+
+
+                                                                      7
+   Brugermanual for
+   DUKA ONE PRO 50 +
+
+MONTAGE OG OPSÆTNING
+
+                LÆS HELE MANUALEN GRUNDIGT IGENNEM INDEN OPSÆTNINGEN AF
+                AGGREGATET.
+
+
+
+1. Bor et rundt hul igennem væggen.
+
+Hullets størrelse og anbefalet placering fremgår af nedenstående tegning. Aggregatet kan godt placeres med mindre afstand til væg,
+loft eller vindue. Nedenstående er anbefalede afstande for at opnå den mest optimale drift.
+Før placeringen, tag højde for, hvordan aggregatet skal forbindes til el nettet.	
+                                                                                     A
+                                                                                                          A-A
+
+                         Anbefalet
+                        min 200 mm
+                                      min 200 mm
+                                       Anbefalet
+
+
+
+
+                       Ø 180 mm
+                                      Anbefalet
+                                     min 200 mm
+
+
+
+
+                                                                                    A
+
+
+
+2. Før røret igennem det borede hul i væggen. Afkort røret i forhold til væggens tykkelse.
+Tag højde for installationen af den udvendige vindskærm.
+
+På den indvendige side må røret maks stikke 3 mm frem af
+væggen. På den udvendige side af facaden må røret maks
+stikke 5 mm ud af væggen.
+
+Sørg for at røret har min 3 mm’s fald mod ydermur for at evt                                      Luk sprækkerne
+                                                                                                 med fx fugemasse
+kondens og slagregn kan løbe af.
+
+                                                                                                                              3 mm
+
+
+
+
+                                                                       0 - 3 mm
+                                                                                                                     5
+                                                                                                                    mm
+
+
+
+
+                                                                  8
+                                                                                          www.dukaventilation.dk
+
+
+3. Fastgør den medfølgende montageskabelon på væggen over murgennemføringen med fx tape.
+
+Bor nu de nødvendige huller til fastgørelsen af indedelen. Tag højde for EL tilslutningen ved opsætningen, så ledninger kan føres ind
+gennem markeringen på skabelonen.	
+
+
+
+
+4. Afmonter fronten fra bag partiet ved at presse de to knapper i siden.
+
+
+
+
+5. Monter bagpartiet med de medfølgende skruer eller tilsvarende.
+Løsn nu skruerne fra den gennemsigtige dækplade over terminalen.
+
+
+
+
+6. Tilslut nu aggregatet som vist nedenfor. Al el-tilslutning skal foretages af el-kyndige personer.
+
+
+
+
+                                        Ledningsholder                                      Ledningsholder
+
+
+
+                                                                 9
+  Brugermanual for
+  DUKA ONE PRO 50 +
+
+7. Indsæt veksler-enheden i murgennemføringen som vist på tegningerne. Tilslut el-forbindelsen.
+
+
+
+                                                                                Markeringen skal
+                                                                                   vise opad
+
+
+
+
+                                                                                      Fastgør ledningen
+                                                                                    under krogen og tilslut
+                                                                                         kabelskoen.
+
+
+
+
+8. Klik fronten på bagpartiet.
+
+
+
+
+9. Installer lyddæmperen i murgennemføringen. Afkort den evt afhængig af murtykkelse.
+
+
+
+
+10. Monter den udvendige stormskærm
+
+
+
+
+                            Udvendig stormskærm
+
+
+
+
+                                                       10
+Brugermanual for
+DUKA ONE PRO 50 +
+
+El-tilslutning og styring
+
+             ALLE EL TILSLUTNINGER SKAL UDFØRES AF EN EL-KYNDIG PERSON. TILSLUT-
+             NINGER, SOM ER MODIFICERET OG ULOVLIGE MEDFØRER, AT GARANTIEN BORT-
+             FALDER.
+
+
+Aggregatet giver mulighed for tilslutning af eksterne sensorer (CO2-sensor, ekstern fugtighedssensor eller
+ekstern afbryder) via NO 1 og NO2 klemmerne på printpladen. Når sensoren aktiveres og kredsen lukkes, går
+aggregatet på høj hastighed.
+
+El-diagram
+
+
+
+
+                                Strømforsyning    L (~)
+                              100-230 V / 50-60
+                                                  N (~)
+                                             Hz
+
+                                   Strømforsyning til                                  N
+                               næste aggregat i serien
+                                 100-230 V / 50-60 Hz                                   L
+
+                                                                                       N
+                                    Strømforsyning til
+                                       dette aggregat                                   L
+                                  100-230 V / 50-60 Hz
+                                                                                      +12V
+
+                                Kontrolsignal input fra                                In
+                                    tidligere aggregat                                Gnd
+
+                               Kontrolsignal output til                               Gnd
+                                      næste aggregat
+                                                                                      Out
+
+
+
+
+                                                                                      NO1
+                                                                                      NO2
+
+                                                                NO- klemmer for
+                                                             tilslutning af ekstern
+                                                          styring (ved spænding på
+                                                           NO2 klemmen aktiveres
+                                                               3. hastighedstrin)
+AGGREGAT INDSTILLINGER
+
+
+Indstil aggregatet til den ønskede drift før
+aggregatet tages i brug.
+                                                                                      Åben gummi låget
+Dette gøres på panelet under gummi
+                                                                                                                8
+
+
+
+
+låget.
+                                                                                                                7
+                                                                                                                6
+                                                                                                                5
+                                                                                                                4
+                                                                                                                3
+                                                                                                                2
+                                                                                                                1
+
+
+
+
+                                                                                                         Kontrolpanel
+
+
+
+
+                                                          11
+                                                                                                                       www.dukaventilation.dk
+
+
+INDSTILLING AF KONTROLPANEL
+                                                                  DUKA ONE PRO 50+
+
+                           Det er muligt at deaktivere aggregatet.
+             1
+
+
+
+                           Det er ikke muligt at deaktivere aggregatet.
+             1
+
+
+
+
+Aggregat omdrejnings retning:
+Anvendes flere aggregater til styret ventilation, anbefales det at installere aggregaterne parvis og integrere dem i en gruppe via et signalkabel. Sæt
+halvdelen af aggregaterne til ”friskluft funktion” og den anden halvdel til ”udluftnings funktion”.
+
+
+
+                           Friskluft funktion
+                           Denne indstilling får aggregatet til køre i friskluft funktion. I ”varmegenvindings mode” starter aggregatet op i ”friskluft funkti-
+             2
+
+
+
+
+                           on”.
+
+
+                           Udluftnings funktion
+                           Denne indstilling får aggregatet til køre i udluftningsfunktion. I ”varmegenvindings mode” starter aggregatet op i ”udluftnings
+             2
+
+
+
+
+                           funktion”.
+
+
+Fugtstyrings opsætning
+Sensoren måler fugtigheden. Er udsugningsluften over det indstillede niveau, skifter aggregatet til højeste niveau. Falder fugtigheden igen til under
+det indstillede niveau, skifter aggregatet til det indstillede niveau. Er der valgt efterløb, fortsætter aggregatet den ekstra tid i høj hastighed.
+
+Fugtigheds-
+sensoren                          40 %                       50 %                        60 %                                    70 %                              80 %
+er slået fra
+             3 4 5
+
+
+
+
+                                         3 4 5
+
+
+
+
+                                                                     3 4 5
+
+
+
+
+                                                                                                3 4 5
+
+
+
+
+                                                                                                                                               3 4 5
+
+
+
+
+                                                                                                                                                                           3 4 5
+Efterløb
+Vælges en efterløbsperiode,fortsætter aggregatet den ekstra tid i høj hastighed. Er fugtigheden kommet under det indstillede niveau eller fx CO2
+niveauet er kommet under niveau, kører aggregatet igen tilbage til den tidligere satte funktion.
+
+        Efterløb: 0 min.                            Efterløb: 5 min.                      Efterløb: 15 min.                                            Efterløb: 30 min.
+                     6 7
+
+
+
+
+                                                              6 7
+
+
+
+
+                                                                                                          6 7
+
+
+
+
+                                                                                                                                                                   6 7
+
+
+
+
+ STYRING AF AGGREGATET                                                                           Hastighed /OFF
+                                                                                                                                                          Tænd /sluk aggregatet
+                                                                                                 Her aktiveres trin 1-2-3- og OFF.
+ Aggregatet kan styres                           Kontrolpanel                                    Lampen indikerer aggregatets                             Fjernbetjening
+ via fjernbetjeningen                            på siden af fronten                             hastighed.
+
+ eller direkte på knap-
+ perne i siden af fronten.                                                                                       Hastighed
+                                                                                                          Varmegenvindings
+ OBS: er flere aggre-                                                                                         funktion
+
+ gater forbundet i serie                                                                         Aggregatet kører i 70 sekunder i friskluft-
+                                                                                                 funktion og derefter 70 sekunder i udluft-
+ eller parallelt, så er det                                                                      nings-funktion.
+
+ kun master aggregatet,
+ der styrer alle enheder.
+
+ Her er det kun ma-                                                                              Ventilations funktion
+
+ steraggregatet der                                                                              Aggregatetkører i den valgte hastighed enten i
+                                                                                                 friskluft- eller udluftnings-funktion. Retningen
+
+ reagerer på fjernbetje-                                                                         afhænger af, om man har valgt friskluft eller
+                                                                                                 udluftning på kontrolpanelet under gummidæk-
+
+ ning, når enhederne er                                                                          slet.
+
+
+ sat op i en master/slave                                                                                                                                 Aktivering af høj hastighed
+                                                                                                                                                                   i 4 timer.
+ løsning.
+                                                                                                                                                          Aktivering af lav hastighed
+                                                                                                                                                                   i 8 timer.
+
+
+                                                                                12
+  Brugermanual for
+  DUKA ONE PRO 50 +
+
+
+                                       AGGREGAT KONTROLPANEL PÅ SIDEN
+  FUNKTION
+
+                   Indstil hastighed Trin I – II – III – OFF
+                   Er flere aggregater forbundet i serie eller parallelt, så er det master aggregatet, der styrer alle enheders hastighed.
+                   I:             Lyser indikatoren, så kører aggregatet på hastighed I.
+                                  Blinker indikatoren, så er den første hastigheds timer aktiveret.
+                   I og II :      Lyser indikator I og II, så kører aggregatet på hastighed II.
+                   I, II og III : Lyser indikator I, II og III, så kører aggregatet på hastighed III.
+Varmegenvindings   Aggregatet kører i 70 sekunder i friskluft- funktion og derefter 70 sekunder i udluftnings-funktion.
+funktion
+
+
+
+
+Ventilations       Aggregatet kører i den valgte hastighed enten i friskluft- eller udluftnings-funktion. Retningen afhænger af, om man har valgt
+funktion           friskluft eller udluftning på kontrolpanelet under gummidækslet.
+
+
+
+
+Filteralarm        Filter indikator
+                   Er et ur, der indikerer efter 90 dage, at det er tid til at inspicere filtrene, som enten skal renses eller skiftes. Se nærmere under
+                   afsnittet ”vedligeholdelse”
+                   Er flere aggregater forbundet i serie eller parallelt, så er det master aggregatets lampe der lyser konstant, mens den aggregat
+                   der har kørt i 90 dage og skal tilses har en blinkende lampe.
+Alarm-indikator-   Alarm indikator
+lampen             Lampen lyser når der er motordefekt. Aggregatet stopper med at køre.
+                   Er aggregaterne forbundet med hinanden, stopper alle aggregaterne.
+
+Master indkator    Kun master aggregatet lyser, når flere aggregater er forbundet med hinanden. Slaverne har ikke lys i deres indikator.
+                   Blinker en af slavernes indikator , betyder det, at der ikke er forbindelse til masteren.
+
+Hvis alle tre      Blinker alle tre indikatorer, så kan det skyldes følgende:
+indikatorer        (1) 4 timers høj hastighed er aktiveret. (2) En af de tilsluttede eksterne sensorer er aktiveret. (3) Den indbyggede fugtsensor
+blinker            er aktiveret.
+
+
+
+
+                                                                         13
+                                                                                                       www.dukaventilation.dk
+
+
+
+                                                AGGREGAT FJERNBETJENING
+  FUNKTION
+
+                   Tænd/sluk aggregatet, med mindre at funktionen er deaktiveret på kontrolpanelet under gummidækslet.
+
+
+
+                   Aggregatet kører i 70 sekunder i friskluft- funktion og derefter 70 sekunder i udluftnings-funktion.
+
+
+Varmegenvindings   Aggregatet kører i den valgte hastighed enten i friskluft- eller udluftnings-funktion. Retningen afhænger af, om man har valgt
+funktion           friskluft eller udluftning på kontrolpanelet under gummidækslet.
+
+
+
+
+Ventilations       Timer funktion
+funktion
+                          — Aktivering af hastighed trin III i 3 timer.
+
+
+                          — Aktivering af hastighed trin I i 8 timer.
+
+
+                   Efter at tiden er udløbet, går aggregatet tilbage til den tidligere hastighed.
+                   Deaktiver funktionen ved at trykke på en vilkårlig knap.
+
+Timer-
+funktion                  — Aktivering af hastighed trin III i 4 timer.
+
+
+                          — Aktivering af hastighed trin I i 8 timer.
+
+
+                   Efter at tiden er udløbet, går aggregatet tilbage til den tidligere hastighed.
+                   Deaktiver funktionen ved at trykke på en vilkårlig knap.
+
+
+
+
+                                                                          14
+Brugermanual for
+DUKA ONE PRO 50 +
+
+LUKNING AF LUFTTILFØRSEL
+Tryk let imod fronten og luftstrømmen blokeres.
+Aggregatet stopper samtidig.
+For at åbne igen, træk forsigtigt i top og bund af fronten.
+Aggregatet starter driften i samme funktion som da den stoppede.
+
+
+
+                                                 Bloker              Åben
+                                                 luftstrømmen        luftstrømmen
+
+
+
+
+LED lampen i fronten lyser under driften.
+I mørke vil lyset dæmpes.
+
+
+
+
+                                                                15
+                                                                                                www.dukaventilation.dk
+
+
+VEDLIGEHOLDELSE
+
+               AFBRYD AGGREGATET FRA STRØMMEN, FØR DER FORETAGES NOGEN FORMER FOR
+               VEDLIGEHOLDELSE.
+
+               VED FILTERSKIFTE SK AL AGGREGATET VÆRE TILSLUTTET STRØM MEN I STAND-
+               BY TILSTAND FOR AT FILTER-TIMEREN NULSTILLES. STRØMMEN SK AL DEREFTER
+               SLUKKES, FØR DER FORETAGES VEDLIGEHOLDELSES OPGAVER. LÆS MERE OM
+               FILTERSKIFTE PÅ NÆSTE SIDE.
+
+               ADVARSEL! FJERN ALDRIG PRINTPLADEN. DETTE K AN UDLØSE EN ALARM. EFTER
+               UDFØRT VEDLIGEHOLDELSE OG GENINSTALLATION AF K ABELSKOEN, FØLG
+               INSTRUKTIONEN FOR NULSTILLING AF FILTER-TIMEREN PÅ NÆSTE SIDE.
+
+Vedligeholdelse af aggregatet kræver en regelmæssig aftørring af aggregatet for støv, samt rensning eller udskiftning af filtrene.
+For at servicere aggregatet, følg venligst følgende skridt:
+
+TRIN 1
+
+Tryk på knapperne i siden af frontpladen på indedelen og tag fronten af.
+
+
+
+
+TRIN 2
+
+Løsn forsigtigt kabelskoen fra kontrolpanelet. Træk ikke i ledningerne .
+Brug en lille flad skruetrækker til at løfte kabelskoen fri fra muffen.
+
+
+
+
+                                                                     Træk ikke i ledningerne.    Brug en lille ﬂad skruetræk-
+                                                                                                 ker til at løfte kabelskoen fri
+                                                                                                           fra muﬀen.
+
+
+
+
+                                                                                                          OP!
+                                 Løsn forsigtigt kabelskoen
+                                    fra kontrolpanelet.
+
+
+
+
+                                                                    16
+Brugermanual for
+DUKA ONE PRO 50 +
+
+TRIN 3
+
+Træk i snoren og træk kernen ud af murgennemføringen. Fjern filterne.
+
+
+
+
+Rens filtrene efter behov. Tilse dem min 3 til 4 gange pr år.
+Filter indikatoren minder dig om at tilse filtrene.
+
+Nulstilling af filteralarmen. Aggregatet skal være tilsluttet strøm men i stand-by tilstand for at filter-timeren nulstilles.
+Filteralarmen nulstilles hver gang kabelmuffen er blevet løsnet.
+
+Filtrene kan rengøres afhængig af hvor tilstoppede de er. Lad dem tørre inden de monteres i aggregatet igen.
+Filtrene må gerne støvsuges.
+Filtrene har en forventet levetid på 1 år ved almindelig brug. Brug kun originale filtre for at sikre den ønskede drift.
+
+Selv regelmæssig rengøring kan ikke helt forhindre snavs aflejring i veksleren.
+•    Rengør veksleren regelmæssigt for at sikre en effektiv drift.
+•    Rens veksleren min 1 gang pr år med en kraftig støvsuger.
+
+
+
+
+TRIN 4: Udskiftning af batteriet i fjernbetjeningen
+
+Efter længere tids drift kan det være nødvendigt at skifte batteriet i
+fjernbetjeningen.
+
+Reagerer aggregatet ikke når man bruger fjernbetjeningen, er det tid
+til at skifte batteriet.
+                                                                                                                                 +
+                                                                                                                                CR2025
+Træk batteri skuffen ud af fjernbetjeningen for at skifte batteriet.                                                             3V
+Batteriet er af type CR 2025
+
+Indsæt det nye batteri i skuffen og tryk det tilbage i fjernbetjeningen.                                              +
+                                                                                                                    CR2025
+                                                                                                                     3V
+
+
+
+
+                                                                       17
+                                                                                                               www.dukaventilation.dk
+
+
+FEJL HÅNDTERING
+
+            PROBLEM                                        MULIGE FEJL                                           FEJL AFHJÆLPNING
+
+                                          Strømmen er ikke tilsluttet.
+                                                                                               • Sikre at der er tilsluttet strøm til aggregatet og at der er tændt for
+                                                                                                 kontakten. Alternativt sikre at det ikke er tilsluttet forkert.
+ Aggregatet starter ikke.                                                                      • Sluk aggregatet.
+                                          Motoren er blokeret, eller propellen møder
+                                                                                               • Tilse om der er motor blokade.
+                                          modstand
+                                                                                               • Rens propel blade. Genstart aggregatet.
+
+                                                                                               • Vent til at DUKA One får sænket fugtniveauet i boligen og slå
+ Aggregatet kører i fuld styrke og        Fugtstyringen i DUKA One aggregatet er slået til       derefter fugtstyring i aggregatet fra eller øg den til et højere
+ reagerer ikke på eksterne signaler       og aktiveret.                                          niveau.
+                                                                                               • Sluk for DUKA One og indstil fugtniveauet eller slå det fra.
+
+                                                                                               • Sluk for aggregatet.
+ Automatisk afbryder slår til.            Muligvis kortslutning i det elektriske netværk.
+                                                                                               • Kontakt forhandler.
+                                          Filteret er tilstoppet.                              Rens eller udskift udsugnings filter.
+ Lav temperatur på indblæsnings
+ luft.                                    Varmeveksleren er tiliset.
+                                                                                               • Kontrollere veksler for tilisning.
+                                                                                               • Sluk og lad isen smelte.
+                                          Står på laveste trin.                                Vælg højere hastighed.
+ Lav luft gennemstrømning.                Filter, aggregatet eller den keramiske er tilstop-   • Rens eller skift filter.
+                                          pet.                                                 • Rens aggregatet og kernen.
+                                          Propel er tilsmudset.                                Rens propel.
+ Høj lydniveau, vibrationer.
+                                          Løse skruer.                                         Efterspænd skruer.
+
+ Filteralarm knappen lyser stadig
+ efter jeg har skiftet/renset filter og   Det er fordi aggregatet har været frakoblet          Aggregatet skal være tilkoblet strøm men slukket enten på
+                                          strømmen mens kabelskoen er blevet afmon-            aggregatet eller fjernbetjeningen (i stand-by tilstand) mens
+ den grønne kabel sko har været           teret.                                               kabelskoen afmonteres. Sådan nulstilles Timeren.
+ afmonteret?
+
+
+ Aggregatet blinker i front dioden        Der er fordi den yderste skærm på indedelen
+                                                                                               Monter skærmen og start derefter aggregatet op.
+ og motoren går ud                        ikke er monteret.
+
+
+
+
+                                                                                 18
+   Brugermanual for
+   DUKA ONE PRO 50 +
+
+OPBEVARING OG TRANSPORT
+
+OPBEVARING OG TRANSPORT REGLER
+Opbevare aggregatet i den originale emballage i tør og ventileret rum, med temperatur fra + 5 grd. op til + 40 grd.. Opbevaringsrummet
+må ikke indeholde aggressive og kemiske dampe. Aggregatet må heller ikke udsættes for vedvarende tryk og belastning.
+Brug løfte værktøjer for at forhindre tab- og faldskader på aggregatet.
+Transport af aggregatet kan ske med et hvilket som helst køretøj, så længe aggregatet er beskyttet mod transportskader og vejrlig.
+Aggregatet skal beskyttes mod stød og slag under hele transporten.
+
+
+GARANTIBESTEMMELSER
+DUKA Ventilation giver 36 mdr. garanti fra købsdatoen, hos forhandleren, såfremt alle de beskrevne forpligtigelser og beskrivelser om-
+kring, brug, opsætning, opbevaring og transport er overholdt.
+Fejl på aggregatet, indenfor garanti perioden, som kan henvises til produktions fejl er også dækket af de 36 mdr. garanti.
+
+I tilfælde af reklamation fremvis købskvittering. Aggregatet skal være brugt som beskrevet i brugermanualen.
+
+Kontakt forhandler/installatør for garanti service.
+DUKA Ventilation kan ikke gøres ansvarlig for garantiforpligtelser der er udført uden at være aftalt med os/vores
+forhandler på forhånd.
+
+ Garantien dækker ikke i følgende tilfælde:
+• Hvis aggregatet ikke er opsat i henhold til monterings vejledning, dette inkl. Også dele i aggregatet.
+• Hvis alle elektriske tilslutninger ikke er foretaget korrekt og i henhold til manualen.
+• Hvis ikke der er foretaget korrekt periodisk vedligeholdelse af aggregatet.
+• Hvis der er synlige skader på aggregatet boksen eller dele inden i boksen.
+• Hvis der er tilføjet tekniske dele i aggregatet eller fjernet tekniske dele fra aggregatet.
+• Ved forkert brug af aggregatet.
+• Fravigelse af brugermanualen.
+• Variationer i spændingen i lysnettet.
+• Uautoriserede reparationer af aggregatet.
+• Fravigelse af transport regler.
+• Fravigelse af opbevarings forskrifter.
+• Aggregat fejl som skyldes Force Majeure. (brand, oversvømmelse, jordskælv, hårdhændet behandling)
+• Hvis der ikke kan fremvises en kvittering af købet.
+
+
+
+
+                FØLG BRUGER MANUALENS ANVISNINGER FOR OPTIMAL BRUG AF AGGREGATET
+
+                      VI HÅBER, AT DU BLIVER TILFREDS MED VORES PRODUKT
+
+
+
+
+                                                                  19
+

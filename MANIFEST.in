@@ -1,0 +1,4 @@
+# Filled in only by git archive; built from the working tree it is an unexpanded template.
+exclude .git_archival.txt
+# The manufacturers' documents are for reading in the repository, not part of the package.
+prune docs

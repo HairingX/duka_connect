@@ -1,0 +1,1218 @@
+                                       DUKA ONE
+                                           PRO 50 S WI-FI
+
+
+
+
+       Brugermanual
+
+DUKA One Pro 50 S Wi-Fi
+   Ventilationsenhed med varmegenvinding
+Indhold
+
+Information og Sikkerhed                                 3
+
+Garantibestemmelser                                      4
+
+Indhold i kassen                                         4
+
+Teknisk Information                                      5
+
+       Opbygning                                         5
+
+Dimensioner                                              6
+
+Montage                                                   7
+
+El tilslutning                                           11
+
+Indstillinger                                            12
+
+Sammenkobling af enheder                                 13
+
+Betjening                                                14
+
+       Frontcoverets funktioner og betjeningspanel       14
+
+DUKA Smart App                                           16
+
+       Opsæt enhed i app                                 16
+
+       Betjening af enhed                                19
+
+       App hovedmenu                                     20
+
+       Indstillinger af enhed i app                      20
+
+Vedligehold                                              21
+
+Fejl og problemløsning                                   23
+
+
+
+
+                                                      2
+Information og Sikkerhed
+Transport og opbevaring
+• Enheden skal beskyttes mod stød, slag samt vejrligeforhold under transport.
+• Opbevaring af enheden skal forekomme i den originale emballage i et tørt og ventileret rum med temperatur fra 5 °C til 40 °C.
+• Opbevaringsrummet må ikke indeholde aggressive eller kemiske dampe eller gasser.
+• Udsæt ikke den opbevarede enhed for tryk eller anden form for belastning.
+
+Anvendelse
+• Brug kun enheden til rumventilation. Tilslut ikke tørretumbler eller lignende udstyr til enheden.
+• Enhedens formål er at skabe grundventilation i boligen.
+• Enheden må kun slukkes i forbindelse med krav fra myndighederne eller af sikkerhedsmæssige årsager - for eksempel ved brand eller lignende.
+• Enheden kan ikke benyttes som varmekilde.
+• Enheden kan ikke benyttes som affugter.
+• Hold eksplosivt og/eller let antændeligt støv/damp/væske væk fra enheden.
+• Luften til ventilationsenheden må ikke indeholde fordampning af kemikalier, groft støv, sod, olie, klæbende substanser, fiberrigt materiale, pato-
+   gene eller andre skadelige stoffer.
+• Bloker ikke enhedens kanal, når enheden er i drift.
+• Lad ikke luftstrømme fra enheden have retning mod åbne flammer eller lignende.
+
+Inden montering
+• Læs og forstå brugermanualen inden montering og ibrugtagning af enheden.
+• Gennemgå produktet for skader på ventilator, kerne, front cover, elektronikdel og udvendig skærm. Der må ikke forekomme fremmedlegemer
+    da dette kan beskadige enheden.
+• Gem quickguiden, så du altid hurtigt og nemt kan tilgå den nyeste manual via QR koden.
+• I tilfælde at enheden skifter ejer, videregiv da quickguiden.
+
+Montage
+•  Enheden er til montering i facadevæg.
+•  Pak enheden forsigtigt ud.
+•  Ved montering og installation af enheden skal alle gældende bygnings-, elektriske-, og tekniske standarder følges.
+•  Følg alle elektriske sikkerhedsregler ved installation af enheden. Se mere hos sikkerhedsstyrelsen på www.sik.dk
+•  Bliver nogle af ledningerne til enheden beskadiget, skal de udskiftes efter gældende regler. Se mere hos sikkerhedsstyrelsen på www.sik.dk
+•  Enheden må ikke udsættes for tryk. Deformering af enheden kan resultere i blokering af motoren og overdreven støj.
+
+Betjening
+•   Afbryd strømmen til enheden før montering, servicering, vedligehold og reparation. Filterskift undtaget, se afsnit omkring vedligehold.
+•   Brug ikke enheden udenfor den specifikke angivne temperaturskala.
+•   Betjen og servicer ikke enheden, styring eller fjernbetjening med våde hænder eller bare fødder, da det kan give elektrisk stød.
+•   Lad ikke børn betjene enheden. Børn skal holdes under opsyn så de ikke leger med enheden.
+•   Forkert brug af enheden eller uautoriseret modifikationer er ikke tilladt.
+•   Enheden bør ikke betjenes af personer med nedsatte fysiske, sensoriske eller mentale evner eller manglende erfaring og viden medmindre de er
+    under opsyn eller har modtaget instruktioner om brugen af enheden af en person, der er ansvarlig for deres sikkerhed.
+
+Rengøring
+•  Vask ikke enheden i vand.
+•  Beskyt de elektriske dele mod vand.
+
+
+
+
+                                                                        3
+Garantibestemmelser
+
+DUKA Ventilation giver 24 måneders reklamationsret fra købsdatoen jf. købeloven. Herudover tilbyder DUKA Ventilation yderligere 12 måneders
+garanti, såfremt at alle beskrevne krav vedrørende transport, opbevaring, anvendelse, montage, betjening, vedligehold og garantibestemmelser er
+overholdt.
+
+For at garantien kan opretholdes, skal det kunne dokumenteres, at filtrene er skiftet mindst en gang pr. år med DUKA Ventilations original filtre.
+Gem derfor kvitteringerne for disse køb.
+Bemærk: Afhængigt af miljøet kan det kan være nødvendigt at skifte filtrene oftere.
+
+Enhedens formål er at skabe grundventilation i boligen.
+Enheden må kun slukkes i forbindelse med krav fra myndighederne eller af sikkerhedsmæssige årsager, for eksempel ved brand eller lignende.
+
+Er enheden installeret, hvor der er risiko for skimmelsvamp, skal enheden rengøres særlig grundigt, så støv og svampesporer fjernes. Det kan være
+nødvendigt at anvende specielt rensemiddel. Undlades dette bortfalder garantien.
+
+Garantien dækker IKKE:
+•   Det periodiske vedligeholdelse.
+•   Enhedens opsætning, indstilling og afmontering.
+
+Garantien bortfalder hvis:
+•   Information vedrørende transport, opbevaring, anvendelse, montage, betjening, vedligehold og garantibestemmelser ikke er overholdt.
+•   Enheden bliver anvendt eller er placeret i vådrum eller omgivelser, som den ikke er designet til.
+•   Enheden har været slukket, uden krav om blokering af luft udefra af myndighederne.
+•   Der er skader som skyldes påvirkning fra skimmelsvamp.
+•   Der er påført synlige skader på enheden.
+•   Enheden er tilsluttet et andet type elnetværk end beskrevet i manualen.
+•   Der sker skader grundet variationer af spænding i elnettet.
+•   Der er benyttet uoriginale filtre i enheden.
+•   Der er tilføjet eller fjernet tekniske komponenter i enheden.
+•   Der er fortaget uautoriserede reparationer af enheden.
+•   Der er fejl på enheden som skyldes force majeure (lynnedslag, brand, oversvømmelse, jordskælv osv.).
+•   Der ikke kan fremvises kvittering på købet.
+•   Garantien er udløbet.
+
+Ved reklamation bedes du udfylde vores online reklamationsformular på: www.dukaventilation.dk/reklamation
+
+DUKA Ventilation kan ikke gøres ansvarlig for garantiforpligtelser, der er udført uden at være aftalt med DUKA Ventilation på forhånd.
+
+For øvrige forhold henvises til Vink Plasts Generelle Salgs- og Leveringsbetingelser. Den seneste version kan altid findes på vores hjemmeside:
+www.dukaventilation.dk
+
+
+
+
+Indhold i kassen
+•   Front cover og elektronikdel (samlet komponent)
+•   Lyddæmper					
+•   500 mm rør					
+•   Montageskabelon				
+•   Stormskærm og drypplade
+•   Kerne
+•   Monteringskit
+•   Fjernbetjening
+
+
+
+
+                                                                         4
+Teknisk Information
+
+Enheden er designet til brug indendørs i temperaturer fra 1 °C til 40 °C og en relativ luftfugtighed på op til 80 %.
+Til- og fraluften skal være mellem -15 til 40 °C.
+Enheden skal køre kontinuerligt.
+
+Elektrisk apparat klassificering: Klasse II
+IP klassificering: IP 24
+
+Enheden er under konstant udvikling, og derfor kan der forekomme små variationer i de tekniske data samt brugermanualen. Den seneste
+dokumentation kan altid findes ved brug af QR koden på den medfølgende Quick Guide eller på www.dukaventilation.dk
+
+
+
+
+Opbygning
+DUKA One enheden består af front cover, elektronikdel, kerne hvor den keramisk veksler og motor er placeret, lyddæmper, filtre, drypplade,
+stormskærm samt murgennemføring. På indvendig side sidder elektronikdelen med front cover. I væggen sidder murgennemføringen hvori kernen
+og lyddæmperen er placeret. Filtrene sidder i hver ende af kernen, hvor de filtrerer den gennemstrømmende luft for støv og andre partikler. På
+udvendig side sidder stormskærmen som beskytter enheden imod vind og regn.
+
+                                                                                                                                                     Indbygningsrør
+                                                                                                                                                     Skal have et fald på 3 mm ud
+                                                                                                                                                     af, så kondens kan rende ud
+
+
+
+
+                                                                                                                                                                           Stormskærms cover
+                                                                                                                                                                           Kan købes i flere farver.
+
+
+
+
+                                                                                            Luftsplitter
+                                                                                            Fordeler luften ligeligt i kernen
+                                                                                            og giver højere
+                                                                                            varmegenvindingsgrad
+            Frontcover             Elektronikdel
+    Kan justeres i indblæsnings    Med panel til indstilling af
+  retning efter personlig behov.   enhed
+
+                                                                                                                      Kerne filter
+                                                                                                                      Skal tilses og rengøres hver
+                                                                                                                      kvartal og skiftes årligt
+
+
+                                                                  Motor filter
+                                                       Skal tilses og rengøres hver
+                                                             kvartal og skiftes årligt
+
+
+
+                                                                                                                                                                                     Stormskærm
+                                                                                                                                                                                     Kan købes i flere farver.
+
+
+
+
+                                                                                                   Keramisk kerne
+                                                                   Lavenergi motor                 Genvinder op til 90% af
+                                                                   Lydsvag motor med lavt          varmen
+                                                                   forbrug
+
+
+  Lydisolering
+  Reducerer støj fra motor og
+  udefra.
+
+                                                                                                                                                                                              Drypskærm
+                                                                                                                                                                                              Reducerer drypmærker
+                                                                                                                                                                                              fra kondensvand under
+                                                                                                                                                                                              stormskærm
+
+
+
+
+                                                                                             5
+     Dimensioner
+     Indedel
+60                  60                    250                    250             60             250                                     250
+                                                                                                                                       250
+
+
+
+
+                250                  250                                       250            250
+                                                                                             250                                                                     250
+
+
+
+
+     Stormskærm
+                                                                                                                            194 194
+                                                                                                                            194
+                                                                                                      1717          17                       1717          17
+
+
+                                                                                               1717            17                                               17
+                                                                                                                                                    1717
+
+
+
+
+                250250
+                250
+
+
+                                                                                                               15                                   1515        15
+                                                                                               1515
+
+
+
+
+                                                                                                                    50
+
+
+
+
+                                                                                                                                                           50
+                                                                                                      50
+                                                                                                      50
+
+
+
+
+                                                                                                                                             50
+                                                                                                                                             50
+                                          215 215
+                                          215                                    60 60
+                                                                                 60                                         188 188
+                                                                                                                            188
+
+
+
+     Minimumsvægtykkelse til montage af DUKA One Pro 50 S
+                                                                                                                                       188
+     Er vægtykkelsen under minimumskravet anbefales det at købe DUKA One Afstandsstykke.                                     188
+                                                                                                                              188
+
+     Anbefalet afstand mellem motor og kerne er 60 mm da dette giver optimal varmegenvindingsgrad.
+     Placering af kernen i forhold til vægtykkelsen:
+
+
+
+                                                                                         DUK A One Pro 50 S Wi-Fi
+
+      Hul diameter (til montering)                                                             170-180 mm
+
+
+      Længde på keramisk kerne og motor                                                               330 mm
+
+
+      Mindst mulig vægtykkelse                                                                        330 mm
+
+                                           Væg > 330 mm                                                       Væg = 330 mm
+                                                                                                                         Kanallængde
+                                               Kanallængde
+                                              Vægtykkelse                                                            Vægtykkelse
+
+
+
+
+                               Lyddæmper      Motor                                                          Motor              Kerne
+                                                               Kerne
+
+
+
+                                                      60 mm
+                                     Anbefalet afstand mellem motor og kerne
+
+
+                                                                                     6
+Montage
+1 - Bestem placering og bor hul gennem væggen.
+
+Inden placering af enheden skal der tages forbehold for
+minimumsafstande til sidevæg, loft og vinduer. Mini-                                 m
+                                                                                        in.
+mumsafstande fremgår af tegningen.                                                            20
+                                                                                                0m
+                                                                                                   m
+
+
+Husk også at tage højde for strømforsyning til enheden                                                              m
+                                                                                                                      in.
+ved valg af placering.                                                                                                      20
+                                                                                                                              0m
+                                                                                                                                    m
+
+
+Ved kælder montage anbefales det, at DUKA One enhe-
+den placeres, så der er mindst 0,5 - 0,3 m fra underside                                               m
+                                                                                                         in.
+af stormskærm til terræn.                                                                                      20
+                                                                                                                 0m
+                                                                                                                    m
+
+
+
+
+2 - Placer røret i hullet og tilpas længden til væggens tykkelse.
+
+
+
+Det er vigtigt at røret installeres med det forskrevne fald på
+3 mm, da det sikrer at eventuelt kondensvand løber
+væk fra de elektriske komponenter i enheden og ud til
+                                                                                                                                              0-5 mm
+stormskærmen.
+
+For nem installation anbefales det at benytte de medfølgende
+polystyrenkiler.
+                                                                                                                                                      3 mm
+Røret må maksimalt stikke 3 mm ud på indvendig side og
+5 mm på udvendig side.
+                                                                        0-3 mm
+
+
+
+
+3 - Benyt den medfølgende skabelon for nem afmærkning af nødvendige borehuller til montage og indgang til skjult kabelføring.
+                                                                                                                                               50,5
+
+                                                                                                           75                                 32
+
+
+                                                                                                                                                      20
+                                                                                                                                                           11
+                                                                                                                                 Ledning / Wiring
+
+
+
+                                                                              128
+                                                                                                                        ø160
+                                                                                                                                                           88
+
+
+
+
+                                                                              73,5
+                                                                                     101,5                                                                 84
+
+
+
+
+                                                                                                           72                    86,5
+
+
+                                                                    7                                  95,5
+
+                                                                                                                            250
+4 - Demonter front coveret ved at trykke på knapperne på toppen og bunden.
+
+
+
+
+5 - Monter elektronikdelen med de medfølgende skruer og demonter venstre dækplade.
+
+
+
+
+6 - Tilslut kablerne i henhold til el diagrammet og før dem som vist nedenfor. Husk af aflaste kablerne med kabelklemmerne.
+
+                                                      Indgange til strømkabel
+                                                           #1
+                                                                       #2
+                                                                       #3
+
+
+
+
+                                                                        Kabelklemme
+
+  Bruges indgang #1 på toppen af enheden, laves der plads til ledningen i front coveret med trappebor over ledningsindgang 1#
+  Udvid hullet som vist, så coveret nemt kan tages af den fast monterede indedel.
+
+
+
+
+                                                              8
+7 - Efter tilslutning af enhedens strømforsyning, monter dækpladen.
+
+
+
+
+8 - Placer kernen i røret
+
+Monter kernen i røret og tilslut kernen til elektronikdelen med det grønne stik.
+
+
+
+
+9 - Placer lyddæmperen i røret
+
+Placer lyddæmperen i røret og rul den så den passer til rørdiameteren. Afkort lyddæmperen så den passer til murtykkelsen med kernen i røret mod
+udvendig side. Lyddæmperen installeres løst, så den kan tages ud under vedligeholdelse af enheden.
+
+
+
+
+                                                      1
+
+
+
+10 - Monter front cover
+
+
+
+
+                                                                           9
+11 - Fjern coveret på stormskærmen inden montage
+
+
+
+
+12 A - Monter stormskærm og metal drypplade
+
+Gå videre til punkt 10 B hvis dryppladen er lavet i plast
+Den medfølgende metal drypplade skal monteres på bagsiden af stormskærmen som på billedet til højre. Dryppladen sørger for at lede kondensvand
+væk fra muren.
+
+
+
+
+                                                      ø6
+                                                   4 huller
+
+
+
+
+12 B - Monter stormskærm med plast drypplade
+Den medfølgende plast drypplade skal klikkes fast på bagsiden af stormskærmen. Dryppladen sørger for at lede kondensvand væk fra
+muren.
+
+
+
+
+13 - Monter cover på stormskærmen
+
+
+
+
+                                                                     10
+El tilslutning
+
+                      ALLE ELTILSLUTNINGER SKAL UDFØRES AF EN AUTORISERET ELEKTRIKER.
+                      TILSLUTNINGER SOM ER MODIFICERET ELLER ULOVLIGE MEDFØRER, AT GARANTIEN PÅ PRODUKTET
+                      BORTFALDER.
+
+                      BEMÆRK: DET ER IKKE LOVLIGT SOM PRIVATPERSON SELV AT STÅ FOR DEN FASTE INSTALLATION.
+                      SE MERE HOS SIKKERHEDSSTYRELSEN PÅ WWW.SIK.DK
+
+
+
+Enheden skal tilsluttes en enkeltfaset AC 100-230 v / 50-60 Hz strømforsyning.
+
+Enheden skal tilsluttes til elnettet via terminalen på printkortet i henhold til nedenstående el diagram.
+
+Det er muligt at tilslutte en ekstern NO-kontakt til enheden. Når kredsen lukkes vil enheden opstarte drift på trin III og når kredsen igen bliver brudt,
+vil enheden returnere til den tidligere hastighedsindstilling.
+Enheden er også kompatibel med analog sensor med udgangssignal på 0-10 V.
+
+
+
+
+                                                                                                              Forbindelse til analog sensor
+               Strømforsyning                                                      NO-ekstern enhedskontakt
+         100-240 V ~ 50/60 Hz
+
+
+
+
+                                                                                                                                               +12 V, max 100 mA
+                                                                                                                          0-10 V styresignal
+                                                                                   (relæ sensor)
+
+
+                                                QF*
+                                                                                                                 Jord
+
+
+
+
+                                                                             100-240VAC
+                                                                               50/60Hz
+                                                  100-240VAC
+                                                                                                              Gnd
+
+                                                                                                                        0-10V
+
+
+
+
+                                                    50-60Hz                            NO
+
+
+
+                                                      N L                     NO2 NO1                          GND Ai1 +12
+                                                       XT1                      XT2                                XT3
+
+
+
+
+                                                                           11
+Indstillinger
+
+
+                                                                                                 Inden opstart af DUKA One enheden skal enhedens
+                                                                                                 driftsinstillinger tilpasses ens behov. Dette gøres via
+                                                                                                 DIP-switchene placeret under DIP-switch coveret.
+
+
+
+
+                                                                          DIP Switch knapperne
+                                                                            er placeret under
+                                                                               gummilåget
+
+
+
+
+                                                              Indstilling af enhedens rolle
+
+                         ON - Slave enhed
+                 1
+
+
+
+
+                         OFF - Master enhed
+                 1
+
+
+
+
+ Anvendes kun såfremt flere enheder ønskes koblet sammen til synkron drift.
+
+
+
+                                                                   Indstilling af standby
+
+                          ON - Enheden kan ikke slukkes og vil drifte på trin I i standby tilstand.
+                  2
+                  2
+
+
+
+
+                          OFF - Enheden kan slukkes og sættes i standby tilstand.
+ Anvendes hvis det ikke ønskes at enheden skal kunne sættes i standby tilstand. Det vil kun være muligt at skifte mellem trin I, II og III på elektro-
+ nikdelen og med fjernbetjening.
+
+
+
+                                                         Indstilling af enhedens driftsretning
+
+                          ON - Enheden vil opstarte drift med indblæsning og vil indblæse luft i ventilationstilstand.
+                  3
+
+
+
+
+                          OFF - Enheden vil opstarte drift med udsugning og vil udsuge luft i ventilationstilstand.
+                  3
+
+
+
+
+ Anvendes til at bestemme motorens rotationsretning ved opstart af enheden og i ventilationstilstand. Det anbefales at halvdelen af enhederne
+ indstilles til ’’ON’’ og den anden halvdel til OFF. Denne indstilling sikrer balanceret ventilation.
+
+
+                                                               Gendan fabriksindstillinger
+
+
+
+                          ON - Gendanner enheden til fabriksindstillinger, dette nulstiller alt information givet til enheden i DUKA Smart App.
+                  4
+
+
+
+
+                          OFF - Normal position.
+                  4
+
+
+
+
+Anvendes til at gendanne enheden til fabriksindstillinger. Flyt DIP swtich 4 til ON position, afvent bip. Flyt herefter DIP switch 4 tilbage i OFF position.
+
+
+
+
+                                                                               12
+Sammenkobling af enheder
+
+Ved sammenkobling af enheder i et master/slave forhold opnås synkron drift og balanceret ventilation i boligen.
+For sammenkoblede enheder vil det kun være master enheden som kan styres via app, fjernbetjening eller på elektronikdelen. Slave enheder vil kun
+reagere på det signal, de modtager fra masteren og ignorerer andre signaler.
+
+
+
+For sammenkobling af enheder hold ventilationsknappen                inde i 5 sekunder, hvorefter enheden vil give et bip og dioderne på siden vil
+begynde at blinke. Dette gøres først for master enheden og derefter for efterfølgende slave enheder. En slave enhed vil efter sammenkobling bippe
+og dioderne vil stoppe med at blinke.
+
+
+
+Når sammenkoblingen er udført for alle ønskede slave enheder, hold da ventilationsknappen           inde på master enheden og afvent bip,
+hvorefter dioderne vil stoppe med at blinke.
+
+
+
+
+OBS - Ønskes det at styre enhederne over hjemmenetværket, skal det sættes op for master enheden INDEN der foretages
+sammenkobling af enhederne. Enhederne kan godt sammenkobles inden ved lokalt netværk.
+
+
+
+
+                                                                       13
+Betjening
+
+                                    Betjening af enheden via knapper på indedelen
+     FUNKTION
+
+                      Indstil hastighed trin I – II – III – standby
+                      I:             Lys - Trin I er aktiv.
+                                     Blink - Nat tilstand er aktiv.
+                      I og II :      Lys - Trin II er aktiv.
+                      I, II og III : Lys - Trin III er aktiv.
+                      Blinker alle tre indikatorer kan det skyldes følgende:
+                      Timeren for party tilstand er aktiveret, den indbyggede fugtsensor er aktiveret eller en tilsluttet ekstern sensor er aktiveret.
+
+                      Ved blink i skiftevis diode I, II og III er ugeplan aktiveret for enheden.
+
+                      Ved sammenkobling af enheder i master/slave forhold, er hastigheden styret af master enheden.
+   Varmegenvindings   Enheden kører i varmegenvindingstilstand - 70 sekunder i indblæsningsfunktion og derefter 70 sekunder i udsugningsfunk-
+   funktion           tion.
+
+
+
+   Ventilations       Enheden kører i ventilationstilstand - indblæsnings- eller udsugningsfunktion.
+   funktion           Retningen afhænger af DIP-switch indstilling, se nærmere under afsnittet Indstillinger.
+
+
+
+
+   Filteralarm        Filteralarmen vil lyse for hver 90. dag, når det er tid til at inspicere filtrene, hvilke enten skal renses eller skiftes.
+                      Se nærmere under afsnittet Vedligehold.
+                      Er flere enheder forbundet vil master enhedens indikator lyse konstant, mens den slave som skal tilses vil have en blinkende
+                      indikator.
+
+
+                      Filteralarmen kan nulstilles ved at følge vejledningen under afsnittet Vedligehold.
+   Alarm indikator    Indikatoren lyser eller blinker, når der opstår en fejl på enheden. Er enhederne forbundet med hinanden vil alle enhederne
+                      stoppe med at køre. Alarm indikatoren vil blinke på den defekte enhed og lyse på de andre enheder.
+
+                      I tilfælde hvor master enheden mister forbindelse til det valgte netværk i over 20 sekunder, vil alarm indikatoren blinke og
+                      enheden vil gå i standby. Slaverne vil signalere manglende forbindelse til master enheden og vil opstarte automatisk, når
+                      master enheden igen startes.
+
+   Master indikator   Kun master enheden vil lyse, når flere enheder er forbundne. Slave enhederne vil ikke have lys i deres indikator.
+                      Blinker en af slave enhedernes indikator, betyder det, at der ikke er forbindelse til master enheden.
+
+
+
+  Frontcoverets funktioner og betjeningspanel
+  Ved at klikke bunden, toppen eller siden ind på enhedens frontcover, kan du bestemme indblæsningsretningen.
+  Bemærk: Enheden er mest effektiv når den er åben til alle sider.
+  OBS: Skal der af sikkerhedsmæssige årsager lukkes for luftgennemstrømningen, skal hele fronten lukkes og enheden slukkes perioden.
+  Se mere under garantibestemmelser.
+
+
+
+
+                                                                                                                            Hastighed / standby
+
+
+                                                                                                                            Varmegenvindings funktion
+
+
+                                                                                                                            Ventilationsfunktion
+
+
+
+
+     Eks. med enhedens bund trykket ind, så indblæsning er langs loftet.
+
+
+
+
+                                                                            14
+                                          Betjening af enheden med fjernbetjening
+  FUNKTION
+
+                   Tænd eller standby
+                   Tænder eller sidder enheden i standby tilstand, med mindre at funktionen er deaktiveret via DIP-switch indstillinger, se nærme-
+                   re under afsnittet Indstillinger.
+
+                   Hastighed
+                   Trin III - II - I
+
+Varmegenvindings   Enheden kører i varmegenvindingstilstand - 70 sekunder i indblæsningsfunktion og derefter 70 sekunder i
+funktion           udsugningsfunktion.
+
+
+
+
+Ventilations       Enheden kører i ventilationstilstand - indblæsnings- eller udsugningsfunktion.
+funktion           Retningen afhænger af DIP-switch indstilling, se nærmere under afsnittet Indstillinger.
+
+
+
+
+Timer-                            Festtilstand:
+funktion                          Aktivering af hastighedstrin III i 4 timer.
+
+                     —            Night mode:
+                                  Aktivering af hastighedstrin I i 8 timer.
+
+
+                   Efter endt tid vil enheden returnere til den tidligere valgte driftsindstilling.
+                   Funktionen deaktiveres tryk på en vilkårlig knap.
+
+
+
+
+                                                                                Tænd / Sluk
+
+
+
+
+                                                   Hastighed
+
+
+
+                                       Varmegenvindingsfunktion
+
+
+
+
+                                            Ventilationsfunktion
+
+
+
+
+                                                                                          Fest tilstand / Boost
+
+                                                                                                Nat tilstand
+
+
+
+
+                                                                                15
+DUKA Smart App
+
+Find DUKA Smart App i Google Play Store eller App Store.
+
+
+
+
+Opsæt enhed i app
+
+Opsætningsmuligheder
+
+Ved første opstart af DUKA Smart App åbnes Enhedsliste. Her vil der være
+mulighed for at tilslutte enheden lokalt eller oprette en bruger og tilslutte et
+hjemmenetværk, hvorfra man kan tilgå og styre en eller flere enheder.
+OBS: Enheden kan kun tilsluttes hovedrouterens 2.4 GHz Wi-Fi signal.                   1
+Tilslut lokalt
+Ved at tilkoble enheden via dens lokale netværk er det kun muligt at styre
+enheden så frem denne forbindelse er opretholdt.
+Mistes forbindelsen er det nødvendigt at oprette den på ny.
+
+For at oprette forbindelse til enhedens lokale netværk:
+1. Tryk Universel forbindelse under enhedslisten
+2. Vælg produktgruppen DUKA One
+3. Tryk på Vælg netværk
+4. Vælg det netværks id for den enhed der ønskes at oprette forbindelse til.
+     Enhedens Fan ID kan ses på printet under front coveret. Koden til enheden
+     er som standard otte et taller: 11111111
+5. Tryk Tilslut
+
+Nu er der forbindelse til enhedens lokale netværk, hvor du via den
+lokale tilslutning har mulighed for at styre den specifikke enhed samt se
+driftsinformation. For en nærmere gennemgang her af se afsnit Betjening.
+
+
+
+
+2
+
+
+
+                                                                                               Dit Wi-Fi Netværk
+
+                                                  3                Dit Wi-Fi Netværk
+
+                                                                                           4
+
+                                                   5
+
+                                                                         16
+Tilslut enheden til et hjemmenetværk
+
+Ved at tilkoble til et hjemmenetværk vil det være muligt at forbinde en eller flere enheder til appen, hvor den/de kan navngives og styres individuelt.
+Ved brug af flere enheder i master/slave forhold, er det kun master enheden som skal tilsluttes i appen, hvorefter denne sammenkobles med slave
+enhederne som beskrevet i afsnittet Sammenkobling af enheder.
+
+For at styre en enhed over appen via hjemmenetværk er det nødvendigt at oprette eller logge ind med en bruger.
+
+Tilslut enheden via hjemmenetværk:
+1. Tryk LOG IND PÅ KONTO under enhedslisten.
+           A. Har du allerede en DUKA Smart App bruger: Indtast e-mail samt adgangskode og tryk LOG PÅ og gå til punkt 5.
+           B. Har du ikke en DUKA Smart App bruger fortsæt til punkt 2.
+2. Tryk TILMELDING.
+3. Indtast e-mail og ønsket adgangskode.
+4. Marker boksen og accepter vilkår og betingelser inden der trykkes TILMELDING.
+
+
+
+
+                                                      A                                             3
+
+
+
+                                                                                                    4
+                                                   2
+     1
+
+
+
+5.   Tryk TILFØJ NY i Enhedsliste.
+6.   Tryk DUKA One i Forbindelsesguide.
+7.   Vælg det hjemmenetværk du ønsker at tilslutte enheden til og skriv adgangskoden til det pågældende netværk. Tryk herefter på NÆSTE
+
+
+
+
+                                                   6
+
+                                                                                                7
+
+
+
+       5
+
+                                                                         17
+1.   Aktiver SETUP MODE på den enhed du ønsker at tilslutte. Dette gøres ved at holde ventilationsknappen      inde på DUKA One
+     enheden i 5 sekunder indtil alle dioder blinker.
+2.   Klik derefter NÆSTE’
+3.   Vælg produktgruppen DUKA One
+4.   Indtast det ønskede navn og adgangskode til enheden
+5.   Tryk KLAR
+
+Enheden er nu tilsluttet dit hjemmenetværk og kan styres direkte i DUKA Smart App ved at benytte din bruger.
+
+
+
+Ønskes der at tilsluttes en eller flere slave enheder til din master enhed kan disse nu forbindes.
+Se afsnit Sammenkobling af enheder for gennemgang.
+
+
+
+
+                                                                                                     11
+
+              8
+                                                   10
+
+
+
+
+9                                                                                                    12
+
+
+
+
+                                                                         18
+Betjening af enhed
+
+
+
+                  Hovedmenu                                                                        Enhedsliste
+
+
+
+
+     Hastighedstrinsindstilling                                                                    Indstillinger
+
+
+
+
+                     ON / OFF                                                                      Skift til trinløs indstilling
+
+
+
+
+         Ventilationsindstilling                                                                   Festtilstand
+
+
+
+
+                 Ugeprogram                                                                        Night mode
+
+
+
+
+                                                 Indikator beskrivelse
+        IKON
+
+                    Enheden er tilsluttet et hjemmenetværk
+
+
+
+
+                    Boost er aktiv på enheden
+
+
+                    Alarm
+                    Rød - Enheden er i nødstop, kontakt DUKA Ventilation på: www.dukaventilation.dk/reklamation
+                    Gul - Batteriet har lav eller ingen spænding, se mere i afsnittet Vedligehold
+                    Filter alarm - Filtrene skal tilses/skiftes, se mere i afsnittet vedligehold
+
+
+
+                    Fugtsensoren er aktiv
+
+
+
+                    Relæsensor er aktiv
+
+
+
+                    Ekstern 0-10 V sensor er aktiv
+
+
+
+
+                                                              19
+App hovedmenu
+
+Hovedmenuen åbnes ved at trykke på menu tegnet ’                ’
+
+Betjening
+Betjene en tilsluttet enhed, se nærmere under afsnittet betjening af enhed.
+
+Enhedsliste
+Tilføj, fjern og ændre navn på enheder.
+
+Konto
+Ændre adgangskode, tilhørende e-mail, logge ud eller slette kontoen.
+
+Sprog
+Indstil sprog for appen.
+
+Om appen
+Læs nærmere om vores vilkår og betingelser for privatpolitik.
+
+
+
+
+Indstillinger af enhed i app
+Timere
+Indstil driftslængde af timere som night mode, festtilstand og boost.
+
+Ugeprogram
+Ugeprogram giver muligheden for reducere drift til trin I i kendte perioder, hvor der ikke er
+ophold i boligen.
+
+Indstil driftshastighed for 4 perioder i løbet af en dag.
+Indstil pr. dag, for hverdage og weekend eller for alle dage.
+
+OBS: DUKA One enheder må ikke stå slukkede, læs mere under garantibestemmelser
+
+Dato og tid
+Indstil dato og tid for enheden.
+
+Sensorer
+Til- og fravælg sensorer for enheden.
+
+Filter
+Se og nulstil filter timer.
+
+Fabriksindstillinger
+Gendan enheden til fabriksindstillinger.
+
+Wi-Fi opsætning
+Tilslut enheden manuelt til netværk.
+
+Firmware
+Se firmware version for enheden.
+
+Enhedsadgangskode
+Skift adgangskode til enheden.
+
+
+
+
+                                                                         20
+Vedligehold
+
+                            HUSK AT AFBRYD STRØMMEN TIL ENHEDEN INDEN DER FORETAGES VEDLIGEHOLD!
+
+
+
+En DUKA One enhed skal tilses og have foretaget vedligehold mindst hver 3. måned. Der kan forekomme forhold, hvorunder det er nødvendigt at
+tilse sin enhed oftere, ved for eksempel et støvet, beskidt eller fugtigt miljø.
+Under vedligehold skal kernen tages ud. Kernen rengøres mens lyddæmper og filtrene skal rengøres eller skiftes.
+
+1 - Demonter front coveret
+
+
+
+
+2 - Demonter kabelsko
+Demonter forsigtigt kabelskoen fra elektronikdelen. Brug en flad skruetrækker til at løfte kabelskoen fri fra kabelmuffen. Træk ikke i ledningerne.
+
+
+
+
+3 - Fjern kerne og lyddæmper fra røret
+
+
+
+
+                                                                         21
+     4 - Rengør filtre, kerne og lyddæmper
+
+     Filtre
+     Filtrene tilses mindst hver 3. måned, hvor de skal renses eller udskiftes afhængigt af stand. Mindst 1 gang om året skal filtrene udskiftes med nye
+     originale filtre fra DUKA Ventilation. Det kan forekomme, at enheden er installeret i et miljø, hvor der kræves et kortere interval imellem vedligehold
+     end de minimumsforeskrevne 3 måneder. Dette kan for eksempel være i et støvet, beskidt eller fugtigt miljø.
+
+     Ved installationer, hvor der er risiko for skimmelsvamp, skal enheden rengøres særligt grundigt, så støv og eventuelle svampesporer fjernes helt. Det
+     kan være nødvendigt at anvende specielt rensemiddel. Undlades dette vil garantien bortfalde på produktet.
+
+     Alt afhængigt af hvor tilstoppede eller slidte filtrene er kan disse vaskes
+     eller støvsuges, dog maksimalt 3 gange.
+     Lad filtrene tørre inden de igen monteres i enheden.
+
+     Nulstilling af filteralarmen sker ved at holde varmgenvindingsknappen på
+     siden af enheden inde i 5 sekunder
+     Filteralarmen kan også nulstilles i appen under: Indstilling - Filter.
+     Se nærmere under afsnittet Indstillinger af enhed i app
+
+      Vare                               Vare nr.          DB nr.               VVS nr.
+      Filtersæt Ø160 - 1 sæt á 2 stk.    345151            1828091              358889816
+      Filtersæt Ø160 - 5 sæt á 2 stk.    412816            2172165              358889856
+      Filtersæt Ø160 - 25 sæt á 2 stk.   412818            2172166              358889866
+      DUKA Clean                         420313            2275112              358889815
+
+     Kerne
+     Organiske partikler fra enhedens omgivelser kan aflejres i den keramiske
+     kerne eller på ventilatoren, det er derfor vigtigt også at rengøre disse
+     dele.
+     Dette gøres nemmest ved brug af støvsuger eller med trykluft. Ved brug af
+     trykluft skal ventilatoren fikseres så den ikke roterer ukontrolleret.
+
+     Lyddæmper
+     Lyddæmperen skal rengøres ved enten at støvsuge eller vaske den
+     forsigtigt. Lad lyddæmperen tørre inden den igen monteres i enheden.
+                           Кришка контролера
+     Rørføring             Закриває місце введення кабелів                                                              Indgange til strømkabel
+     Rengør rørføringen medтаenклеми   підключення
+                                fugtig klud og mildt rengøringsmiddel.
+     Her kan DUKA Clean anvendes.
+                                                                                                                                         +
+     Lad rørføringen tørre inden kerne, motor og lyddæmper monteres igen.                                                              CR2025
+                                                                                                                                        3V
+     Fjernbetjening
+     Efter længere tids drift kan det være nødvendigt at skifte batteriet i fjernbetjeningen.                               +
+                                                                                                                          CR2025
+                                                                                                                           3V
+
+     Træk batteriskuffen ud af fjernbetjeningen for at skifte batteriet og indsætte det nye
+     batteri.
+
+     Batteritype: CR 2025
+
+     Batteriskift
+     Når der er lav eller ingen spænding på batteriet vil alarm indikatoren i
+     appen lyse gult og alarm indikatoren på siden af enheden vil blinke.
+
+     Såfremt der ingen strøm er på batteriet vil enheden ikke kunne huske tid,                                                                  Batteri
+     dato og ugeplan.
+                                                                                                                                                   Елемент
+     Afbryd strømmen til enheden og demonter de to dækplader til printet,                                                                         живлення
+     det vil her efter være muligt at tilgå og udskifte batteriet.
+         Гумова кришка
+акриває DIP-перемикачі
+     Batteritype: CR 1220
+
+
+
+
+                                                                                 22
+Fejl og problemløsning
+
+            PROBLEM                                     MULIGE FEJL                                             FEJL AFHJÆLPNING
+
+                                       Strømmen er ikke tilsluttet
+                                                                                           • Tjek at der er tilsluttet strøm til enheden og at der er tændt for
+                                                                                             kontakten. Alternativt sikre at enheden ikke er tilsluttet forkert
+Enheden starter ikke                                                                       • Sluk enheden
+                                       Motoren er blokeret, eller ventilatoren møder
+                                                                                           • Tilse om der er motoren er blokeret
+                                       modstand
+                                                                                           • Rens ventilator bladene. Tænd enheden
+                                                                                           • Sluk for enheden
+Automatisk afbryder slår til           Kortslutning af det elektriske netværk
+                                                                                           • Kontakt forhandler
+                                       Filtrene er tilstoppede                             Rens eller udskift filtre
+Lav temperatur på indblæsningsluft                                                         • Kontroller den keramiske kerne for tilisning
+                                       Den keramiske kerne er tiliset
+                                                                                           • Sluk for enheden, tag kernen ud og lad isen smelte.
+                                       Enheden står på laveste trin                         Vælg højere hastighedstrin
+Lav luft gennemstrømning               Filtre, ventilator eller den keramiske kerne er      • Rens eller skift filtre
+                                       tilstoppet                                           • Rens ventilator og keramisk kerne
+                                       Ventilatoren er tilsmudset                          Rens ventilator
+Højt lydniveau eller vibrationer
+                                       Løse skruer                                         Efterspænd skruer
+
+
+Knappen for filteralarm lyser stadig   Nulstilling af filteralarm er ikke foretaget iht.
+                                                                                           Se afsnittet Vedligehold
+efter filterrens/skift                 vejledningen.
+
+
+
+Enheden kører på fuld styrke, alle
+                                       Fugtstyringen i DUKA One enheden er slået til og    Sluk for DUKA One og indstil fugtniveauet eller slå det fra via DIP
+hastighedsdioder blinker og reagerer
+                                       aktiveret                                           switch indstillinger. Se afsnit Indstillinger.
+ikke på eksterne signaler
+
+
+
+
+                                                                                 23
+                DUKA ONE
+
+
+
+
+dukaventilation.dk
+
+
+
+
+        24
+
