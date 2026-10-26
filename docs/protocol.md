@@ -74,7 +74,9 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `analog_sensor_over_threshold` | `0305` | 1 | the 0-10 V signal is over its threshold | |
 
 A command is sent with function 02, which the unit does not answer; the points it changes are
-read afterwards.
+read afterwards, once the client's command delay (1 s unless set) has passed, as nothing says when
+the unit has carried the command out. A setting is written with function 03, and the unit answers
+with the value it then has, so it needs no wait.
 
 **Points read in turn.** The unit sends nothing by itself, and its points are polled at different
 rates, so one point can change long before another that follows from it is read again. Each point

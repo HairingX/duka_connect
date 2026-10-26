@@ -36,7 +36,7 @@ def clock() -> FakeClock:
 def make_client(unit: SimulatedDuka, clock: FakeClock, password: str | None = None) -> Client:
     return Client(
         "127.0.0.1", unit.device_id, unit.password if password is None else password,
-        port=unit.port, timeout=0.2, attempts=1, clock=clock,
+        port=unit.port, timeout=0.2, attempts=1, command_delay=0.0, clock=clock,
     )
 
 
