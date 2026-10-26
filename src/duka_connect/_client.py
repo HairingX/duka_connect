@@ -34,16 +34,6 @@ type StatusCallback = Callable[[Status], None]
 """Told the client's new status."""
 
 _MAX_PARAMETERS_PER_REQUEST = 32
-# A command's effect is read back from these points.
-_READ_AFTER: Mapping[str, tuple[Key[Any], ...]] = {
-    PointKey.RESET_FILTER_TIMER.name: (PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE, PointKey.ALARM),
-    PointKey.RESET_ALARMS.name: (PointKey.ALARM, PointKey.FILTER_REPLACE),
-    PointKey.RESTORE_FAN_SPEEDS.name: (
-        PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
-        PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,
-        PointKey.SUPPLY_SPEED_3, PointKey.EXHAUST_SPEED_3,
-    ),
-}
 
 
 class _Subscription:
@@ -306,8 +296,7 @@ class Client:
                     [(point.parameter, data) for point, data in commands],
                 )
                 await self._link.send(packet)
-                after = {key.name: key for point, _ in commands for key in _READ_AFTER.get(point.key.name, ())}
-                await self._read([self._points[name] for name in after])
+                await self._read_following([point for point, _ in commands], frozenset())
         except TimeoutError as error:
             raise CannotConnectError(f"No answer from {self.host}") from error
 
@@ -322,7 +311,9 @@ class Client:
             answered = response.get(point.parameter)
             if answered != data:
                 refused.append(f"{point.key} (sent {data.hex()}, unit has {answered.hex() if answered else 'none'})")
-        self._store(response, [point for point, _ in settings])
+        written = [point for point, _ in settings]
+        changed = self._store(response, written)
+        await self._read_following(changed, frozenset(point.key.name for point in written))
         if refused:
             raise WriteError("The unit did not take " + ", ".join(refused))
 
@@ -337,7 +328,9 @@ class Client:
         self._set_status(Status.CONNECTED)
         return response.values
 
-    async def _read(self, points: Sequence[Point[Any]]) -> None:
+    async def _read(self, points: Sequence[Point[Any]], done: frozenset[str] = frozenset()) -> None:
+        """Read points, then read on from those whose value changed."""
+        changed: list[Point[Any]] = []
         parameters = list(dict.fromkeys(point.parameter for point in points))
         for start in range(0, len(parameters), _MAX_PARAMETERS_PER_REQUEST):
             chunk = parameters[start:start + _MAX_PARAMETERS_PER_REQUEST]
@@ -350,9 +343,22 @@ class Client:
             except TimeoutError:
                 self._mark_failed(chunk_points)
                 raise
-            self._store(values, chunk_points)
+            changed += self._store(values, chunk_points)
+        await self._read_following(changed, done | {point.key.name for point in points})
 
-    def _store(self, values: Mapping[int, bytes | None], points: Sequence[Point[Any]]) -> None:
+    async def _read_following(self, points: Sequence[Point[Any]], done: frozenset[str]) -> None:
+        """Read the points that `points` are followed by, except those in `done`."""
+        following = {
+            key.name: self._points[key.name]
+            for point in points for key in point.then_read
+            if key.name in self._points and key.name not in done
+        }
+        if following:
+            await self._read(list(following.values()), done)
+
+    def _store(self, values: Mapping[int, bytes | None], points: Sequence[Point[Any]]) -> list[Point[Any]]:
+        """Store the values read, and return the points whose value changed from a good one."""
+        changed: list[Point[Any]] = []
         now = self._clock()
         stamp = time.time()
         for point in points:
@@ -367,7 +373,11 @@ class Client:
                     new = DataValue(point.decode(data), Quality.GOOD, stamp, data)
                 except (Undecodable, IndexError):
                     new = DataValue(None, Quality.NO_DATA, stamp, data)
+            old = self._values.get(point.key.name)
+            if old is not None and old.quality is Quality.GOOD and old.value != new.value:
+                changed.append(point)
             self._update(point.key, new)
+        return changed
 
     def _mark_failed(self, points: Sequence[Point[Any]]) -> None:
         now = self._clock()

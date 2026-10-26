@@ -76,6 +76,26 @@ A unit does not answer a wrong password, nor a write with function 02.
 A command is sent with function 02, which the unit does not answer; the points it changes are
 read afterwards.
 
+**Points read in turn.** The unit sends nothing by itself, and its points are polled at different
+rates, so one point can change long before another that follows from it is read again. Each point
+names the points its change affects: when a read or a write finds its value changed, or a command
+is sent, those are read at once, and so on from each of them that changed in turn; no point is read
+twice in one round.
+
+| A change of | Reads at once |
+|---|---|
+| `alarm` | `rtc_battery_voltage`, `filter_replace`, `filter_timer` - what raises and clears it |
+| `filter_replace` | `filter_timer`, `alarm` |
+| `filter_interval` | `filter_timer`, `filter_replace` |
+| `power`, `speed`, `manual_speed` | `fan_rpm`, `fan2_rpm`; `power` also `boost` |
+| `boost` | `fan_rpm`, `fan2_rpm`, `humidity`, `humidity_over_threshold` |
+| `timer_mode` | `timer_countdown`, `fan_rpm`, `fan2_rpm` |
+| `humidity`, `humidity_threshold`, `humidity_sensor_enabled` | `humidity_over_threshold`, `boost` |
+| `analog_sensor_level`, `analog_sensor_threshold` | `analog_sensor_over_threshold` |
+| `reset_filter_timer` (sent) | `filter_timer`, `filter_replace`, `alarm` |
+| `reset_alarms` (sent) | `alarm`, `filter_replace` |
+| `restore_fan_speeds` (sent) | `supply_speed_1` … `exhaust_speed_3` |
+
 **Ventilation modes.** Ventilation moves air one way all the time; whether in or out is set by
 the unit's DIP switch, and Duka recommends half of a home's units set each way, so that the
 ventilation is balanced (DUKA One Pro 50 S Wi-Fi user manual, pages 12 and 14). Heat recovery

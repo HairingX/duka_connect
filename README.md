@@ -68,7 +68,9 @@ unit answered.
 | `MISSING` | The unit says it does not have this value. |
 
 A subscribed point is read on its poll rate: `FAST` 10 s, `MEDIUM` 30 s, `SLOW` 60 s, `RARE`
-15 min, or `STATIC`, once when connecting. `set_poll_interval(key, seconds)` changes one.
+15 min, or `STATIC`, once when connecting. `set_poll_interval(key, seconds)` changes one. A point
+whose value changes has the points it affects read at once, such as the battery and filter when
+the alarm clears.
 
 ### Writing
 

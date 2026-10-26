@@ -22,6 +22,8 @@ from duka_connect import (
     VentilationMode,
     WriteError,
 )
+from duka_connect._duka_one import DUKA_ONE
+from duka_connect._protocol import Function
 from duka_connect.testing import FILTER_DAYS, SimulatedDuka
 
 
@@ -151,7 +153,8 @@ async def test_manual_speed_is_written_with_the_manual_preset_in_one_request(
 ) -> None:
     unit.requests.clear()
     await client.write_many([(PointKey.SPEED, Speed.MANUAL), (PointKey.MANUAL_SPEED, 77)])
-    assert len(unit.requests) == 1
+    assert sorted(unit.requests[0][1]) == [0x02, 0x44]
+    assert all(function is Function.READ for function, _ in unit.requests[1:])
     assert values_of(client, PointKey.SPEED) is Speed.MANUAL
     assert values_of(client, PointKey.MANUAL_SPEED) == 77
 
@@ -267,3 +270,58 @@ async def test_restoring_the_fan_speeds_reads_them_back(client: Client, unit: Si
     assert values_of(client, PointKey.SUPPLY_SPEED_1) == 120
     await client.write(PointKey.RESTORE_FAN_SPEEDS, None)
     assert values_of(client, PointKey.SUPPLY_SPEED_1) == 80
+
+
+async def test_a_cleared_alarm_reads_the_battery_and_filter_at_once(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    client.subscribe(PointKey.ALARM, lambda key, old, new: None)
+    unit.values[0x83] = bytes([AlarmLevel.WARNING])
+    clock.advance(60)
+    await client.poll()
+    unit.values[0x83] = bytes([AlarmLevel.NONE])
+    unit.values[0x24] = (3100).to_bytes(2, "little")
+    unit.requests.clear()
+    clock.advance(60)
+    await client.poll()
+    assert values_of(client, PointKey.RTC_BATTERY_VOLTAGE) == 3100
+    assert [parameters for _, parameters in unit.requests][0] == [0x83]
+
+
+async def test_an_unchanged_value_reads_nothing_more(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    client.subscribe(PointKey.ALARM, lambda key, old, new: None)
+    unit.requests.clear()
+    clock.advance(60)
+    await client.poll()
+    assert [parameters for _, parameters in unit.requests] == [[0x83]]
+
+
+async def test_a_change_read_in_turn_reads_on_without_reading_a_point_twice(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    client.subscribe(PointKey.ALARM, lambda key, old, new: None)
+    unit.values[0x83] = bytes([AlarmLevel.WARNING])
+    unit.values[0x88] = b"\x01"
+    unit.requests.clear()
+    clock.advance(60)
+    await client.poll()
+    read = [number for _, parameters in unit.requests for number in parameters]
+    assert values_of(client, PointKey.FILTER_REPLACE) is True
+    assert len(read) == len(set(read))
+
+
+async def test_turning_the_unit_off_reads_the_fans_at_once(client: Client, unit: SimulatedDuka) -> None:
+    unit.requests.clear()
+    await client.write(PointKey.POWER, False)
+    read = {number for _, parameters in unit.requests[1:] for number in parameters}
+    assert {0x4A, 0x4B, 0x06} <= read
+
+
+def test_a_point_reads_in_turn_only_other_points_with_a_value() -> None:
+    names = {point.key.name: point for point in DUKA_ONE}
+    for point in DUKA_ONE:
+        for key in point.then_read:
+            assert key.name != point.key.name, point.key
+            assert not names[key.name].command, (point.key, key)

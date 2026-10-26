@@ -81,35 +81,65 @@ class PointKey:
 
 
 DUKA_ONE: tuple[Point[Any], ...] = (
-    Point(PointKey.POWER, 0x01, 1, decode_bool, encode_bool, PollRate.FAST),
-    Point(PointKey.SPEED, 0x02, 1, state_decoder(Speed), encode_state, PollRate.FAST),
-    Point(PointKey.BOOST, 0x06, 1, decode_bool, poll_rate=PollRate.FAST),
-    Point(PointKey.TIMER_MODE, 0x07, 1, state_decoder(TimerMode), encode_state, PollRate.FAST),
+    Point(
+        PointKey.POWER, 0x01, 1, decode_bool, encode_bool, PollRate.FAST,
+        then_read=(PointKey.FAN_RPM, PointKey.FAN2_RPM, PointKey.BOOST),
+    ),
+    Point(
+        PointKey.SPEED, 0x02, 1, state_decoder(Speed), encode_state, PollRate.FAST,
+        then_read=(PointKey.FAN_RPM, PointKey.FAN2_RPM),
+    ),
+    Point(
+        PointKey.BOOST, 0x06, 1, decode_bool, poll_rate=PollRate.FAST,
+        then_read=(PointKey.FAN_RPM, PointKey.FAN2_RPM, PointKey.HUMIDITY, PointKey.HUMIDITY_OVER_THRESHOLD),
+    ),
+    Point(
+        PointKey.TIMER_MODE, 0x07, 1, state_decoder(TimerMode), encode_state, PollRate.FAST,
+        then_read=(PointKey.TIMER_COUNTDOWN, PointKey.FAN_RPM, PointKey.FAN2_RPM),
+    ),
     Point(PointKey.TIMER_COUNTDOWN, 0x0B, 3, decode_seconds_minutes_hours, unit="s"),
-    Point(PointKey.HUMIDITY_SENSOR_ENABLED, 0x0F, 1, decode_bool, encode_bool, PollRate.SLOW),
+    Point(
+        PointKey.HUMIDITY_SENSOR_ENABLED, 0x0F, 1, decode_bool, encode_bool, PollRate.SLOW,
+        then_read=(PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST),
+    ),
     Point(
         PointKey.HUMIDITY_THRESHOLD, 0x19, 1, decode_int, int_encoder(1), PollRate.SLOW,
-        unit="%", minimum=40, maximum=80,
+        unit="%", minimum=40, maximum=80, then_read=(PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST),
     ),
     Point(PointKey.RTC_BATTERY_VOLTAGE, 0x24, 2, decode_int, poll_rate=PollRate.RARE, unit="mV"),
-    Point(PointKey.HUMIDITY, 0x25, 1, decode_int, unit="%"),
+    Point(
+        PointKey.HUMIDITY, 0x25, 1, decode_int, unit="%",
+        then_read=(PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST),
+    ),
     Point(
         PointKey.MANUAL_SPEED, 0x44, 1, decode_int, int_encoder(1), PollRate.FAST,
-        minimum=0, maximum=255,
+        minimum=0, maximum=255, then_read=(PointKey.FAN_RPM, PointKey.FAN2_RPM),
     ),
     Point(PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit="rpm"),
     Point(PointKey.FILTER_TIMER, 0x64, 3, decode_minutes_hours_days, poll_rate=PollRate.RARE, unit="min"),
-    Point(PointKey.RESET_FILTER_TIMER, 0x65, 1, decode_nothing, encode_nothing, command=True),
+    Point(
+        PointKey.RESET_FILTER_TIMER, 0x65, 1, decode_nothing, encode_nothing, command=True,
+        then_read=(PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE, PointKey.ALARM),
+    ),
     Point(
         PointKey.BOOST_OFF_DELAY, 0x66, 1, decode_int, int_encoder(1), PollRate.SLOW,
         unit="min", minimum=0, maximum=60,
     ),
     Point(PointKey.OPERATING_TIME, 0x7E, 4, decode_operating_minutes, poll_rate=PollRate.RARE, unit="min"),
-    Point(PointKey.RESET_ALARMS, 0x80, 1, decode_nothing, encode_nothing, command=True),
-    Point(PointKey.ALARM, 0x83, 1, state_decoder(AlarmLevel), poll_rate=PollRate.SLOW),
+    Point(
+        PointKey.RESET_ALARMS, 0x80, 1, decode_nothing, encode_nothing, command=True,
+        then_read=(PointKey.ALARM, PointKey.FILTER_REPLACE),
+    ),
+    Point(
+        PointKey.ALARM, 0x83, 1, state_decoder(AlarmLevel), poll_rate=PollRate.SLOW,
+        then_read=(PointKey.RTC_BATTERY_VOLTAGE, PointKey.FILTER_REPLACE, PointKey.FILTER_TIMER),
+    ),
     Point(PointKey.FIRMWARE_VERSION, 0x86, 6, decode_firmware_version, poll_rate=PollRate.STATIC),
     Point(PointKey.FIRMWARE_DATE, 0x86, 6, decode_firmware_date, poll_rate=PollRate.STATIC),
-    Point(PointKey.FILTER_REPLACE, 0x88, 1, decode_bool, poll_rate=PollRate.SLOW),
+    Point(
+        PointKey.FILTER_REPLACE, 0x88, 1, decode_bool, poll_rate=PollRate.SLOW,
+        then_read=(PointKey.FILTER_TIMER, PointKey.ALARM),
+    ),
     Point(
         PointKey.VENTILATION_MODE, 0xB7, 1, state_decoder(VentilationMode), encode_state,
         PollRate.FAST,
@@ -117,7 +147,10 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     Point(PointKey.UNIT_TYPE, 0xB9, 2, decode_int, poll_rate=PollRate.STATIC),
     Point(PointKey.RELAY_SENSOR_ENABLED, 0x14, 1, decode_bool, encode_bool, PollRate.SLOW),
     Point(PointKey.ANALOG_SENSOR_ENABLED, 0x16, 1, decode_bool, encode_bool, PollRate.SLOW),
-    Point(PointKey.ANALOG_SENSOR_LEVEL, 0x2D, 1, decode_int, unit="%"),
+    Point(
+        PointKey.ANALOG_SENSOR_LEVEL, 0x2D, 1, decode_int, unit="%",
+        then_read=(PointKey.ANALOG_SENSOR_OVER_THRESHOLD,),
+    ),
     Point(PointKey.RELAY_SENSOR_ACTIVE, 0x32, 1, decode_bool),
     *(
         Point(key, parameter, 1, decode_int, int_encoder(1), PollRate.SLOW, minimum=10, maximum=255)
@@ -134,6 +167,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     Point(
         PointKey.FILTER_INTERVAL, 0x63, 2, decode_int, int_encoder(2), PollRate.RARE,
         unit="d", minimum=70, maximum=365,
+        then_read=(PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE),
     ),
     Point(PointKey.CLOCK_TIME, 0x6F, 3, decode_clock_time, encode_clock_time, PollRate.RARE),
     Point(PointKey.CLOCK_DATE, 0x70, 4, decode_clock_date, encode_clock_date, PollRate.RARE),
@@ -142,9 +176,16 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     Point(PointKey.IP_ADDRESS, 0xA3, 4, decode_ipv4, poll_rate=PollRate.RARE),
     Point(
         PointKey.ANALOG_SENSOR_THRESHOLD, 0xB8, 1, decode_int, int_encoder(1), PollRate.SLOW,
-        unit="%", minimum=5, maximum=100,
+        unit="%", minimum=5, maximum=100, then_read=(PointKey.ANALOG_SENSOR_OVER_THRESHOLD,),
     ),
-    Point(PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, decode_nothing, encode_execute, command=True),
+    Point(
+        PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, decode_nothing, encode_execute, command=True,
+        then_read=(
+            PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
+            PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,
+            PointKey.SUPPLY_SPEED_3, PointKey.EXHAUST_SPEED_3,
+        ),
+    ),
     *(
         Point(
             key, parameter, 2, decode_minutes_hours, encode_minutes_hours, PollRate.SLOW,
