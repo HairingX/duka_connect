@@ -1,7 +1,7 @@
 """What a point is: a parameter of the unit, and how its bytes become a value."""
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 from enum import IntEnum
 
 from ._values import Certainty, InvalidValueError, Key, PollRate
@@ -132,3 +132,55 @@ def decode_nothing(data: bytes) -> None:
 def encode_nothing(value: None) -> bytes:
     """Write a command point: the unit ignores the byte sent."""
     return b"\x00"
+
+
+def decode_clock_time(data: bytes) -> time:
+    """Read the unit's clock, sent as seconds, minutes and hours."""
+    try:
+        return time(data[2], data[1], data[0])
+    except ValueError as error:
+        raise Undecodable(f"{data.hex()} is not a time of day") from error
+
+
+def encode_clock_time(value: time) -> bytes:
+    """Write the unit's clock as seconds, minutes and hours."""
+    return bytes([value.second, value.minute, value.hour])
+
+
+def decode_clock_date(data: bytes) -> date:
+    """Read the unit's calendar, sent as day, weekday, month and the year in the century."""
+    try:
+        return date(2000 + data[3], data[2], data[0])
+    except ValueError as error:
+        raise Undecodable(f"{data.hex()} is not a date") from error
+
+
+def encode_clock_date(value: date) -> bytes:
+    """Write the unit's calendar as day, weekday (1 Monday to 7 Sunday), month and year in the century.
+
+    Raises:
+        InvalidValueError: the year is outside 2000 to 2099, which the unit cannot hold.
+    """
+    if not 2000 <= value.year <= 2099:
+        raise InvalidValueError(f"The unit holds years 2000 to 2099, not {value.year}")
+    return bytes([value.day, value.isoweekday(), value.month, value.year - 2000])
+
+
+def decode_minutes_hours(data: bytes) -> int:
+    """Read a duration sent as minutes and hours, in minutes."""
+    return data[0] + data[1] * 60
+
+
+def encode_minutes_hours(value: int) -> bytes:
+    """Write a duration in minutes as minutes and hours."""
+    return bytes([value % 60, value // 60])
+
+
+def decode_ipv4(data: bytes) -> str:
+    """Read an IPv4 address, sent as its four numbers in the order they are written."""
+    return ".".join(str(byte) for byte in data[:4])
+
+
+def encode_execute(value: None) -> bytes:
+    """Write a command that is run by the value 1."""
+    return b"\x01"

@@ -38,6 +38,11 @@ _MAX_PARAMETERS_PER_REQUEST = 32
 _READ_AFTER: Mapping[str, tuple[Key[Any], ...]] = {
     PointKey.RESET_FILTER_TIMER.name: (PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE, PointKey.ALARM),
     PointKey.RESET_ALARMS.name: (PointKey.ALARM, PointKey.FILTER_REPLACE),
+    PointKey.RESTORE_FAN_SPEEDS.name: (
+        PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
+        PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,
+        PointKey.SUPPLY_SPEED_3, PointKey.EXHAUST_SPEED_3,
+    ),
 }
 
 
