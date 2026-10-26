@@ -39,17 +39,21 @@ class _Following:
 class Scheduler:
     """The schedule of one device: poll intervals, overrides, pending refreshes, following.
 
-    Each key keeps its own rhythm: a read a refresh asked for does not move the next regular one.
-    Whenever something is due, everything due within `coalesce_window` seconds is due with it, so
-    that it can share the request rather than follow in one of its own.
+    Each key keeps its own rhythm: a read a refresh or a retry asked for does not move the next
+    regular one. A polled key whose read failed is read again `retry_after` seconds later, then
+    after twice as long at each further failure, but never later than its next regular read.
     """
 
     def __init__(self, clock: Clock, poll_intervals: Mapping[PollRate, float | None] = DEFAULT_INTERVALS,
-                 *, min_poll_interval: float = 0.0, coalesce_window: float = 0.0) -> None:
+                 *, min_poll_interval: float = 0.0, retry_after: float = 0.0) -> None:
+        """Args:
+            retry_after: seconds before a failed read is tried again; 0 waits for the next
+                regular read.
+        """
         if min_poll_interval < 0:
             raise ValueError(f"min_poll_interval cannot be negative, got {min_poll_interval}")
-        if not (math.isfinite(coalesce_window) and coalesce_window >= 0):
-            raise ValueError(f"coalesce_window must be a finite number >= 0, got {coalesce_window}")
+        if not (math.isfinite(retry_after) and retry_after >= 0):
+            raise ValueError(f"retry_after must be a finite number >= 0, got {retry_after}")
         model_intervals: dict[PollRate, float | None] = {}
         for poll_rate in PollRate:
             default = poll_intervals.get(poll_rate, DEFAULT_INTERVALS[poll_rate])
@@ -64,7 +68,7 @@ class Scheduler:
 
         self._clock = clock
         self._min_poll_interval = min_poll_interval
-        self._coalesce_window = coalesce_window
+        self._retry_after = retry_after
         self._model_intervals = model_intervals
         self._rate_overrides: dict[PollRate, float] = {}
         self._key_overrides: dict[str, float] = {}
@@ -77,6 +81,8 @@ class Scheduler:
         """When each key was last read on its own rhythm."""
         self._pending: dict[str, _Pending] = {}
         self._following: dict[str, _Following] = {}
+        self._retry_at: dict[str, float] = {}
+        self._failures: dict[str, int] = {}
 
     # ------------------------------------------------------------------------------- points
 
@@ -92,6 +98,8 @@ class Scheduler:
                 self._key_overrides.pop(key, None)
                 self._pending.pop(key, None)
                 self._following.pop(key, None)
+                self._retry_at.pop(key, None)
+                self._failures.pop(key, None)
                 self._warned.discard(key)
         for key in new_points:
             if key not in self._points:
@@ -195,6 +203,8 @@ class Scheduler:
             self._last_regular.pop(key, None)
             self._pending.pop(key, None)
             self._following.pop(key, None)
+            self._retry_at.pop(key, None)
+            self._failures.pop(key, None)
 
     # ---------------------------------------------------------------------------------- read
 
@@ -203,8 +213,9 @@ class Scheduler:
         advance following."""
         self._require(key)
         now = self._clock.monotonic()
-        if self._regular_due(key) <= now + self._coalesce_window:
+        if self._regular_due(key) <= now:
             self._last_regular[key] = now
+        self._record_outcome(key, success, now)
 
         pending = self._pending.get(key)
         if pending is None or pending.not_before > now:
@@ -214,6 +225,26 @@ class Scheduler:
             self._following[key] = _Following(pending.follow_deadline, pending.after)
         if key in self._following:
             self._advance_following(key, value, success, now)
+
+    def consecutive_failures(self, key: str) -> int:
+        """How many reads of `key` in a row have failed."""
+        self._require(key)
+        return self._failures.get(key, 0)
+
+    def _record_outcome(self, key: str, success: bool, now: float) -> None:
+        if success:
+            self._failures.pop(key, None)
+            self._retry_at.pop(key, None)
+            return
+        failures = self._failures.get(key, 0) + 1
+        self._failures[key] = failures
+        if not self._retry_after or not self._polled.get(key, False):
+            return
+        wait = self._retry_after * 2 ** (failures - 1)
+        interval = self.interval(key)
+        if interval is not None:
+            wait = min(wait, interval)
+        self._retry_at[key] = now + wait
 
     def _advance_following(self, key: str, value: DataValue[Any] | None, success: bool, now: float) -> None:
         following = self._following[key]
@@ -231,25 +262,19 @@ class Scheduler:
     # ---------------------------------------------------------------------------------- due
 
     def due(self) -> list[str]:
-        """Keys to read now, in priority order: pending refreshes, never-read, most overdue.
-
-        Nothing is due before something is due now; then everything due within the coalesce
-        window is due with it.
-        """
+        """Keys to read now, in priority order: pending refreshes and retries, never-read, most
+        overdue."""
         now = self._clock.monotonic()
-        regular = self._regular_times()
-        earliest = min([*regular.values(), *(pending.not_before for pending in self._pending.values())],
-                       default=math.inf)
-        if earliest > now:
-            return []
-        horizon = now + self._coalesce_window
         order = {key: index for index, key in enumerate(self._points)}
-
-        ready = sorted((key for key, pending in self._pending.items() if pending.not_before <= horizon),
-                       key=lambda key: (self._pending[key].not_before, order[key]))
+        asked = {key: pending.not_before for key, pending in self._pending.items() if pending.not_before <= now}
+        for key, at in self._retry_at.items():
+            if at <= now:
+                asked[key] = min(at, asked.get(key, at))
+        ready = sorted(asked, key=lambda key: (asked[key], order[key]))
         seen = set(ready)
+        regular = self._regular_times()
         never = [key for key, due in regular.items() if key not in seen and due == -math.inf]
-        overdue = sorted((key for key, due in regular.items() if key not in seen and -math.inf < due <= horizon),
+        overdue = sorted((key for key, due in regular.items() if key not in seen and -math.inf < due <= now),
                          key=lambda key: (regular[key], order[key]))
         return ready + never + overdue
 
@@ -257,6 +282,7 @@ class Scheduler:
         """The monotonic time `due()` would next return something; `None` if nothing ever will."""
         now = self._clock.monotonic()
         candidates = [pending.not_before for pending in self._pending.values()]
+        candidates += self._retry_at.values()
         candidates += [max(due, now) for due in self._regular_times().values()]
         return min(candidates) if candidates else None
 

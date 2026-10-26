@@ -12,8 +12,8 @@ from duka_connect._event_connect.testing import FakeClock, FakePoint
 @pytest.mark.parametrize("fields", [
     {"read_back_after": -1.0},
     {"min_poll_interval": float("nan")},
-    {"coalesce_window": float("inf")},
-    {"coalesce_window": 10.0},
+    {"retry_after": float("inf")},
+    {"offline_after": -1.0},
 ])
 def test_a_timing_that_cannot_be_meant_is_refused(fields: dict[str, Any]) -> None:
     with pytest.raises(ValueError):
@@ -22,16 +22,19 @@ def test_a_timing_that_cannot_be_meant_is_refused(fields: dict[str, Any]) -> Non
 
 def test_a_timing_keeps_a_frozen_copy_of_its_intervals() -> None:
     intervals = {PollRate.FAST: 5.0}
-    timing = Timing(poll_intervals=intervals, coalesce_window=1.0)
+    timing = Timing(poll_intervals=intervals)
     intervals[PollRate.FAST] = 1.0
     assert timing.poll_intervals[PollRate.FAST] == 5.0
 
 
-def test_its_scheduler_plans_by_its_intervals_and_window() -> None:
+def test_its_scheduler_plans_by_its_intervals_and_retries() -> None:
     clock = FakeClock()
-    scheduler = Timing(poll_intervals={PollRate.FAST: 5.0}, coalesce_window=1.0).scheduler(clock)
+    scheduler = Timing(poll_intervals={PollRate.FAST: 5.0}, retry_after=2.0).scheduler(clock)
     scheduler.set_points([FakePoint(Key("a", int), poll_rate=PollRate.FAST)])
+    scheduler.set_polled("a", True)
+    scheduler.record("a", None, success=False)
     assert scheduler.interval("a") == 5.0
+    assert scheduler.next_due() == clock.monotonic() + 2.0
 
 
 def test_a_write_shows_after_the_refresh_s_wait_then_the_point_s_then_the_timing_s() -> None:

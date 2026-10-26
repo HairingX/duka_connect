@@ -14,6 +14,7 @@ from ._event_connect import (
     PollRate,
     Quality,
     ReadOnlyError,
+    Reachability,
     Refresh,
     Selector,
     Status,
@@ -87,6 +88,7 @@ class Client:
         self._polled_keys: set[str] = set()
         self._scheduled_keys = frozenset(point.key for point in self._readable)
         self._timing = timing
+        self._reachability = Reachability(self._clock, timing.offline_after)
         self._scheduler = timing.scheduler(self._clock)
         self._scheduler.set_points(self._readable)
         self._status: dict[Status, DataValue[bool]] = {
@@ -154,8 +156,23 @@ class Client:
         return {self._points[key].key: value for key, value in self._values.items()}
 
     def status(self, status: Status) -> DataValue[bool]:
-        """What the client knows of `status` now."""
+        """What the client knows of `status` now.
+
+        `Status.CONNECTED` turns false only once the unit has been silent for the timing's
+        `offline_after`; `silent_for` says how long it has been so far.
+        """
         return self._status[status]
+
+    @property
+    def silent(self) -> bool:
+        """Whether the unit left the latest request unanswered."""
+        return self._reachability.silent
+
+    @property
+    def silent_for(self) -> float:
+        """Seconds since the unit first left a request unanswered since its last answer; 0 while
+        it answers."""
+        return self._reachability.silent_for
 
     # ============================================================================== interest
 
@@ -403,11 +420,11 @@ class Client:
                 packet, self.device_id, self._sizes, self._timeout, self._attempts
             )
         except TimeoutError:
-            if self._status[Status.CONNECTED].value:
-                _LOGGER.debug("%s stopped answering", self.host)
-            self._set_status(Status.CONNECTED, False)
+            reachable = self._reachability.unanswered()
+            _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
+            self._set_status(Status.CONNECTED, reachable)
             return None
-        self._set_status(Status.CONNECTED, True)
+        self._set_status(Status.CONNECTED, self._reachability.answered())
         return response.values
 
     def _set_status(self, status: Status, value: bool) -> None:

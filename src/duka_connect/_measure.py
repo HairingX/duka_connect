@@ -5,7 +5,7 @@ from collections.abc import Awaitable, Callable
 
 from ._client import Client
 from ._duka_one import PointKey
-from ._event_connect import CannotConnectError, Clock, Status, SystemClock
+from ._event_connect import CannotConnectError, Clock, Quality, SystemClock
 from ._event_connect.testing import Latency, Settling
 from ._states import Speed
 
@@ -23,7 +23,8 @@ async def measure_latency(client: Client, *, requests: int = 20, clock: Clock | 
     for _ in range(requests):
         started = timer.monotonic()
         await client.refresh([PointKey.POWER])
-        answered = client.status(Status.CONNECTED).value
+        power = client.value(PointKey.POWER)
+        answered = power is not None and power.quality is not Quality.STALE
         answers.append(timer.monotonic() - started if answered else None)
     return Latency(tuple(answers))
 

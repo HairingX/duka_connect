@@ -25,29 +25,24 @@ class Timing:
     """The shortest interval any point may be read at, however it is overridden."""
     read_back_after: float = 1.0
     """Seconds from a write until a read shows it, unless a point says otherwise."""
-    coalesce_window: float = 2.0
-    """Seconds ahead a read is brought forward to share a request with one due now.
-
-    Wide enough to gather what falls due close together, so that a slow device is not asked
-    twice in quick succession; narrow against the shortest interval, so that nothing is read much
-    early.
-    """
+    retry_after: float = 1.0
+    """Seconds before a failed read is tried again, doubled at each further failure up to the
+    point's interval; 0 waits for the next regular read."""
+    offline_after: float = 30.0
+    """Seconds a device may go without answering before it counts as not answering; a single
+    lost answer then does not make it unavailable."""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "poll_intervals", MappingProxyType(dict(self.poll_intervals)))
-        for name in ("min_poll_interval", "read_back_after", "coalesce_window"):
+        for name in ("min_poll_interval", "read_back_after", "retry_after", "offline_after"):
             seconds: float = getattr(self, name)
             if not (math.isfinite(seconds) and seconds >= 0):
                 raise ValueError(f"{name} must be a finite number >= 0, got {seconds}")
-        shortest = min((s for s in self.poll_intervals.values() if s is not None), default=None)
-        if shortest is not None and self.coalesce_window >= shortest:
-            raise ValueError(f"coalesce_window {self.coalesce_window}s must be shorter than the "
-                             f"shortest poll interval, {shortest}s, or every read is brought forward")
 
     def scheduler(self, clock: Clock) -> Scheduler:
         """A scheduler that plans by this timing."""
         return Scheduler(clock, self.poll_intervals, min_poll_interval=self.min_poll_interval,
-                         coalesce_window=self.coalesce_window)
+                         retry_after=self.retry_after)
 
     def read_back_delay(self, point: Point[Any]) -> float:
         """Seconds after writing `point` before what its write disturbs is read."""
@@ -58,4 +53,5 @@ class Timing:
 
 DEFAULT_TIMING = Timing()
 """A timing for a device nothing has been measured on: the default poll intervals, a second for a
-write to show, and reads within two seconds of each other gathered into one request."""
+write to show, a failed read tried again after a second, and half a minute of silence before the
+device counts as not answering."""

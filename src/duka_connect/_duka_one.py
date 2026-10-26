@@ -83,10 +83,11 @@ _FANS = (PointKey.FAN_RPM, PointKey.FAN2_RPM)
 _FANS_SETTLE = Refresh(_FANS, after=3.0, until_stable=30.0)
 """The fans' speeds, read until they settle: a fan takes some seconds to reach a new speed."""
 
-DUKA_ONE_TIMING = Timing(read_back_after=1.0, coalesce_window=2.0)
+DUKA_ONE_TIMING = Timing(read_back_after=1.0, retry_after=1.0, offline_after=30.0)
 """How a Duka One is read: the default poll intervals; what a command changed is read a second
 after it is sent, as the unit does not answer a command, so nothing says when it has carried it
-out; and reads due within two seconds of each other share one request."""
+out; a failed read is tried again a second later, and twice as late at each further failure; and
+the unit counts as not answering only after half a minute without an answer."""
 
 
 def _whole(minimum: int, maximum: int) -> Limits:

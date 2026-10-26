@@ -36,6 +36,7 @@ from ._point import (
     select,
     selector,
 )
+from ._reachability import Reachability
 from ._scheduler import Scheduler
 from ._status import Status, StatusCallback
 from ._timing import DEFAULT_TIMING, Timing
@@ -65,6 +66,7 @@ __all__ = [
     "Pulse",
     "Quality",
     "ReadOnlyError",
+    "Reachability",
     "Refresh",
     "Scheduler",
     "Selector",

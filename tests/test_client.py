@@ -208,7 +208,7 @@ async def test_a_refresh_reads_a_poll_rate_or_keys_now(client: Client, unit: Sim
     assert sorted(set(read(unit))) == [0x86, 0xB9]
 
 
-async def test_a_unit_that_stops_answering_makes_values_stale_and_status_disconnected(
+async def test_a_unit_that_stays_silent_makes_values_stale_and_then_counts_as_not_answering(
     client: Client, unit: SimulatedDuka, clock: FakeClock
 ) -> None:
     connected: list[bool | None] = []
@@ -219,6 +219,10 @@ async def test_a_unit_that_stops_answering_makes_values_stale_and_status_disconn
     await client.poll()
     value = client.value(PointKey.HUMIDITY)
     assert value is not None and value.quality is Quality.STALE and value.value == 45
+    assert connected == [True]
+    for _ in range(5):
+        clock.advance(10)
+        await client.poll()
     assert connected == [True, False]
     unit.answering = True
     clock.advance(30)
@@ -226,6 +230,37 @@ async def test_a_unit_that_stops_answering_makes_values_stale_and_status_disconn
     assert connected == [True, False, True]
     value = client.value(PointKey.HUMIDITY)
     assert value is not None and value.quality is Quality.GOOD
+
+
+async def test_a_single_lost_answer_does_not_count_as_not_answering(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    connected: list[bool | None] = []
+    client.subscribe_status(Status.CONNECTED, lambda _status, _old, new: connected.append(new.value))
+    watch(client, PointKey.HUMIDITY)
+    unit.answering = False
+    clock.advance(30)
+    await client.poll()
+    unit.answering = True
+    clock.advance(1)
+    await client.poll()
+    assert connected == [True]
+    value = client.value(PointKey.HUMIDITY)
+    assert value is not None and value.quality is Quality.GOOD
+
+
+async def test_a_failed_read_is_tried_again_a_second_later(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    watch(client, PointKey.RTC_BATTERY_VOLTAGE)
+    unit.answering = False
+    clock.advance(900)
+    await client.poll()
+    unit.answering = True
+    unit.requests.clear()
+    clock.advance(1)
+    await client.poll()
+    assert read(unit) == [0x24]
 
 
 async def test_a_raising_callback_does_not_stop_the_others(
@@ -271,7 +306,19 @@ async def test_a_setting_the_unit_does_not_take_is_not_taken(client: Client, uni
 async def test_a_write_the_unit_does_not_answer_is_not_taken(client: Client, unit: SimulatedDuka) -> None:
     unit.answering = False
     assert not await client.write(PointKey.POWER, False)
-    assert client.status(Status.CONNECTED).value is False
+    assert client.status(Status.CONNECTED).value is True
+
+
+async def test_the_client_says_how_long_the_unit_has_been_silent(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    clock.advance(5)
+    assert client.silent and client.silent_for == 5.0
+    unit.answering = True
+    await client.refresh([PointKey.HUMIDITY])
+    assert not client.silent and client.silent_for == 0.0
 
 
 async def test_a_value_outside_the_limits_is_refused_before_it_is_sent(
@@ -411,9 +458,12 @@ async def test_the_fans_are_read_until_their_speed_settles(
         unit.values[0x4A] = rpm.to_bytes(2, "little")
         clock.advance(3)
         await client.poll()
-    unit.requests.clear()
-    clock.advance(3)
+    clock.advance(1)
     await client.poll()
+    unit.requests.clear()
+    for _ in range(9):
+        clock.advance(1)
+        await client.poll()
     assert values_of(client, PointKey.FAN_RPM) == 2200
     assert 0x4A not in read(unit)
 
@@ -515,21 +565,9 @@ def test_every_command_waits_before_what_it_changed_is_read() -> None:
             assert point.on_write is not None and DUKA_ONE_TIMING.read_back_delay(point) > 0, point.key
 
 
-async def test_reads_due_close_together_share_one_request(
-    client: Client, unit: SimulatedDuka, clock: FakeClock
-) -> None:
-    watch(client, PointKey.FAN_RPM, PointKey.FAN2_RPM, PointKey.POWER, PointKey.VENTILATION_MODE)
-    clock.advance(5)
-    await client.write(PointKey.SPEED, Speed.HIGH)
-    unit.requests.clear()
-    clock.advance(3)
-    await client.poll()
-    assert [sorted(numbers) for _, numbers in unit.requests] == [[0x01, 0x4A, 0x4B, 0xB7]]
-
-
 async def test_a_client_can_be_given_its_own_timing(unit: SimulatedDuka, clock: FakeClock) -> None:
     client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
-                    clock=clock, timing=Timing(poll_intervals={PollRate.FAST: 5.0}, coalesce_window=0.0))
+                    clock=clock, timing=Timing(poll_intervals={PollRate.FAST: 5.0}))
     await client.connect()
     watch(client, PointKey.POWER)
     unit.requests.clear()

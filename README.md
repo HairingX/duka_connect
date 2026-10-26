@@ -76,9 +76,13 @@ says so. When the alarm clears, the battery and filter are read 10 seconds later
 10 seconds while they change, for up to 2 minutes; a new speed has the fans read 3 seconds later,
 until they settle. What is read again is what is subscribed to. `docs/protocol.md` lists every one.
 
-Reads due within two seconds of each other share one request, and a read asked for after a
-change does not move a point's own rhythm, so points read together stay together. A different
-`Timing` can be given to `Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
+One request is sent at a time, and whatever is due when the unit is free goes out together. A
+read asked for after a change does not move a point's own rhythm, so points read together stay
+together. A read the unit does not answer is tried again a second later, then 2, 4 and 8 seconds
+later, never later than its next turn; its value meanwhile is the last good one, `STALE`. The
+unit counts as not answering - `Status.CONNECTED` false - only after half a minute without an
+answer, so one lost packet does not make it unavailable. A different `Timing` can be given to
+`Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
 
 `client.status(Status.CONNECTED)` says whether the unit answers, and
 `subscribe_status(Status.CONNECTED, callback)` tells every change.
