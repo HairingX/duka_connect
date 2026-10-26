@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, time
 from enum import IntEnum
+from typing import Any
 
 from ._values import Certainty, InvalidValueError, Key, PollRate
 
@@ -16,7 +17,8 @@ class Point[T]:
     """One value the unit has.
 
     A point with `encode` can be written; a `command` point is written to make the unit do
-    something, and has no value to read.
+    something, and has no value to read. When its value changes, or a command is sent, the
+    points of `then_read` are read at once, and so on from those whose value changes in turn.
     """
 
     key: Key[T]
@@ -30,6 +32,7 @@ class Point[T]:
     maximum: int | None = None
     command: bool = False
     certainty: Certainty = Certainty.REPORTED
+    then_read: tuple[Key[Any], ...] = ()
 
     @property
     def writable(self) -> bool:

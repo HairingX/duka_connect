@@ -46,6 +46,8 @@ obvious from the name - one or two lines, no narrative.
   real values live in the gitignored `mysecrets.py` or in environment variables.
 - The unit's password is a credential: it is never logged.
 - A point is `Certainty.REPORTED` until it has been read on a Duka One.
+- A point that changes another names it in `then_read`, so the other is read at once rather
+  than at its own, perhaps rarer, poll; `docs/protocol.md` lists them.
 - Facts come from the manufacturers' documents, copied into `docs/models/` with their text
   layer. What is known only from elsewhere is written in this repository's own words, never
   with a reference to another repository.
