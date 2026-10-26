@@ -1,5 +1,6 @@
 """The client against a simulated Duka One."""
 from datetime import date, time
+from time import monotonic
 from typing import Any
 
 import pytest
@@ -325,3 +326,29 @@ def test_a_point_reads_in_turn_only_other_points_with_a_value() -> None:
         for key in point.then_read:
             assert key.name != point.key.name, point.key
             assert not names[key.name].command, (point.key, key)
+
+
+async def test_a_command_is_read_back_only_after_the_unit_has_had_time_to_carry_it_out(
+    unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    client = Client(
+        "127.0.0.1", unit.device_id, unit.password,
+        port=unit.port, timeout=0.2, attempts=1, command_delay=0.3, clock=clock,
+    )
+    await client.connect()
+    started = monotonic()
+    await client.write(PointKey.RESET_ALARMS, None)
+    assert monotonic() - started >= 0.3
+    await client.disconnect()
+
+
+async def test_a_setting_is_answered_so_it_is_not_waited_for(unit: SimulatedDuka, clock: FakeClock) -> None:
+    client = Client(
+        "127.0.0.1", unit.device_id, unit.password,
+        port=unit.port, timeout=0.2, attempts=1, command_delay=5.0, clock=clock,
+    )
+    await client.connect()
+    started = monotonic()
+    await client.write(PointKey.POWER, False)
+    assert monotonic() - started < 1.0
+    await client.disconnect()

@@ -1,4 +1,5 @@
 """The client: connecting to a unit, reading what is subscribed to, and writing."""
+import asyncio
 import logging
 import time
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -60,6 +61,7 @@ class Client:
         port: int = PORT,
         timeout: float = 2.0,
         attempts: int = 3,
+        command_delay: float = 1.0,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         """Set up a client; nothing is sent until `connect()`.
@@ -67,6 +69,8 @@ class Client:
         Args:
             timeout: seconds to wait for each answer.
             attempts: how many times a request is sent before the unit counts as not answering.
+            command_delay: seconds to wait after a command before reading what it changed, as
+                the unit does not answer a command.
             clock: the monotonic clock polling is planned by.
         """
         self.device_id = device_id
@@ -74,6 +78,7 @@ class Client:
         self._link = UdpLink(host, port)
         self._timeout = timeout
         self._attempts = attempts
+        self._command_delay = command_delay
         self._clock = clock
         self._points: dict[str, Point[Any]] = {point.key.name: point for point in DUKA_ONE}
         self._sizes = {point.parameter: point.size for point in DUKA_ONE}
@@ -296,6 +301,9 @@ class Client:
                     [(point.parameter, data) for point, data in commands],
                 )
                 await self._link.send(packet)
+                # Nothing says when the unit has carried a command out; read too soon and the
+                # old value comes back until the next poll.
+                await asyncio.sleep(self._command_delay)
                 await self._read_following([point for point, _ in commands], frozenset())
         except TimeoutError as error:
             raise CannotConnectError(f"No answer from {self.host}") from error

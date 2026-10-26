@@ -82,6 +82,9 @@ await client.write_many([(PointKey.SPEED, Speed.MANUAL), (PointKey.MANUAL_SPEED,
 await client.write(PointKey.RESET_FILTER_TIMER, None)   # a command
 ```
 
+A setting is answered by the unit with its new value. A command is not answered, so what it
+changed is read back after `command_delay` seconds, 1 unless given to `Client`.
+
 A value outside a point's limits raises `InvalidValueError` before anything is sent; a value the
 unit does not take raises `WriteError`.
 
