@@ -17,6 +17,8 @@ _RESET_ALARMS = 0x80
 _FILTER_TIMER = 0x64
 _FILTER_REPLACE = 0x88
 _ALARM = 0x83
+_RESTORE_FAN_SPEEDS = 0x012A
+_FAN_SPEEDS = range(0x3A, 0x40)
 _SIZES = {point.parameter: point.size for point in DUKA_ONE}
 
 DEFAULT_VALUES: Mapping[int, bytes] = {
@@ -39,8 +41,26 @@ DEFAULT_VALUES: Mapping[int, bytes] = {
     0x88: b"\x00",
     0xB7: b"\x01",
     0xB9: (3).to_bytes(2, "little"),
+    0x14: b"\x00",
+    0x16: b"\x00",
+    0x2D: bytes([0]),
+    0x32: b"\x00",
+    **dict(zip(range(0x3A, 0x40), (bytes([speed]) for speed in (80, 80, 160, 160, 255, 255)))),
+    0x4B: (1240).to_bytes(2, "little"),
+    0x63: (90).to_bytes(2, "little"),
+    0x6F: bytes([15, 30, 12]),
+    0x70: bytes([26, 1, 10, 26]),
+    0x72: b"\x00",
+    0x85: b"\x01",
+    0xA3: bytes([192, 0, 2, 10]),
+    0xB8: bytes([50]),
+    0x0302: bytes([0, 8]),
+    0x0303: bytes([0, 4]),
+    0x0304: b"\x00",
+    0x0305: b"\x00",
 }
-"""What a simulated unit starts with, by parameter number: a running unit with no alarm."""
+"""What a simulated unit starts with, by parameter number: a running unit with no alarm, its
+clock at 12:30:15 on Monday 26 October 2026, and the documentation address 192.0.2.10."""
 
 FILTER_DAYS = 90
 """The days a filter timer is reset to."""
@@ -129,5 +149,8 @@ class SimulatedDuka(asyncio.DatagramProtocol):
             self.values[_FILTER_REPLACE] = b"\x00"
         elif number == _RESET_ALARMS:
             self.values[_ALARM] = b"\x00"
+        elif number == _RESTORE_FAN_SPEEDS:
+            for speed in _FAN_SPEEDS:
+                self.values[speed] = DEFAULT_VALUES[speed]
         elif number in self.values:
             self.values[number] = value

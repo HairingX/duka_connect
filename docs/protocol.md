@@ -55,9 +55,34 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `filter_replace` | `88` | 1 | 0 the filter is fine, 1 replace it | |
 | `ventilation_mode` | `B7` | 1 | 0 extract, 1 heat recovery, 2 supply | yes |
 | `unit_type` | `B9` | 2 | the kind of unit | |
+| `relay_sensor_enabled` | `14` | 1 | the relay sensor may start boost | yes |
+| `analog_sensor_enabled` | `16` | 1 | the 0-10 V sensor may start boost | yes |
+| `analog_sensor_level` | `2D` | 1 | the 0-10 V sensor's signal, 0 to 100 % | |
+| `relay_sensor_active` | `32` | 1 | the relay sensor is on | |
+| `supply_speed_1` … `exhaust_speed_3` | `3A`-`3F` | 1 each | supply and exhaust fan speed at speeds 1 to 3, 10 to 255 | yes |
+| `fan2_rpm` | `4B` | 2 | the second fan's speed, 0 to 5000 rpm | |
+| `filter_interval` | `63` | 2 | days between filter changes, 70 to 365 | yes |
+| `clock_time` | `6F` | 3 | the unit's clock: seconds, minutes, hours | yes |
+| `clock_date` | `70` | 4 | the unit's calendar: day, weekday 1 (Monday) to 7, month, year in the century | yes |
+| `weekly_schedule` | `72` | 1 | the weekly schedule runs | yes |
+| `cloud_enabled` | `85` | 1 | the unit may use Duka's cloud | yes |
+| `ip_address` | `A3` | 4 | the unit's current IP address, its numbers in order | |
+| `analog_sensor_threshold` | `B8` | 1 | the 0-10 V signal that starts boost, 5 to 100 % | yes |
+| `restore_fan_speeds` | `012A` | 1 | command: the fan speeds of every speed back to the factory's, by the value 1 | command |
+| `night_timer`, `party_timer` | `0302`, `0303` | 2 each | how long the night and party modes run: minutes, hours | yes |
+| `humidity_over_threshold` | `0304` | 1 | the humidity is over its threshold | |
+| `analog_sensor_over_threshold` | `0305` | 1 | the 0-10 V signal is over its threshold | |
 
 A command is sent with function 02, which the unit does not answer; the points it changes are
 read afterwards.
+
+The guide gives the separate fan speeds `3A`-`3F`, the filter interval `63` and the restore
+command `012A` for some models only; a unit without them answers `FD`, and they are `MISSING`.
+
+Left out on purpose: the password `7D` and the Wi-Fi settings `94`-`A2`, as writing them can
+lock out every client or take the unit off the network; restoring the factory settings `87`;
+the schedule periods `77`, which are a feature of their own; and `32A`-`32B`, for another model
+only.
 
 ## Not known yet
 

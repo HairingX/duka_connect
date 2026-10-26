@@ -1,5 +1,5 @@
 """The client against a simulated Duka One."""
-from datetime import date
+from datetime import date, time
 from typing import Any
 
 import pytest
@@ -218,3 +218,52 @@ async def test_a_raising_callback_does_not_stop_the_others(
     clock.advance(30)
     await client.poll()
     assert seen == [45, 50]
+
+
+async def test_connecting_reads_the_sensors_clock_and_settings(client: Client) -> None:
+    assert values_of(client, PointKey.FAN2_RPM) == 1240
+    assert values_of(client, PointKey.CLOCK_TIME) == time(12, 30, 15)
+    assert values_of(client, PointKey.CLOCK_DATE) == date(2026, 10, 26)
+    assert values_of(client, PointKey.IP_ADDRESS) == "192.0.2.10"
+    assert values_of(client, PointKey.NIGHT_TIMER) == 8 * 60
+    assert values_of(client, PointKey.PARTY_TIMER) == 4 * 60
+    assert values_of(client, PointKey.FILTER_INTERVAL) == 90
+    assert values_of(client, PointKey.SUPPLY_SPEED_3) == 255
+    assert values_of(client, PointKey.CLOUD_ENABLED) is True
+    assert values_of(client, PointKey.HUMIDITY_OVER_THRESHOLD) is False
+
+
+async def test_the_clock_is_set_in_one_request(client: Client, unit: SimulatedDuka) -> None:
+    unit.requests.clear()
+    await client.write_many(
+        [(PointKey.CLOCK_TIME, time(7, 5, 9)), (PointKey.CLOCK_DATE, date(2027, 1, 3))]
+    )
+    assert len(unit.requests) == 1
+    assert unit.values[0x6F] == bytes([9, 5, 7])
+    assert unit.values[0x70] == bytes([3, 7, 1, 27])
+    assert values_of(client, PointKey.CLOCK_DATE) == date(2027, 1, 3)
+
+
+async def test_a_year_the_unit_cannot_hold_is_refused(client: Client) -> None:
+    with pytest.raises(InvalidValueError):
+        await client.write(PointKey.CLOCK_DATE, date(2100, 1, 1))
+
+
+async def test_a_timer_on_page_3_is_written_as_minutes_and_hours(
+    client: Client, unit: SimulatedDuka
+) -> None:
+    await client.write(PointKey.NIGHT_TIMER, 9 * 60 + 45)
+    assert unit.values[0x0302] == bytes([45, 9])
+    assert values_of(client, PointKey.NIGHT_TIMER) == 9 * 60 + 45
+
+
+async def test_a_filter_interval_outside_70_to_365_days_is_refused(client: Client) -> None:
+    with pytest.raises(InvalidValueError):
+        await client.write(PointKey.FILTER_INTERVAL, 30)
+
+
+async def test_restoring_the_fan_speeds_reads_them_back(client: Client, unit: SimulatedDuka) -> None:
+    await client.write(PointKey.SUPPLY_SPEED_1, 120)
+    assert values_of(client, PointKey.SUPPLY_SPEED_1) == 120
+    await client.write(PointKey.RESTORE_FAN_SPEEDS, None)
+    assert values_of(client, PointKey.SUPPLY_SPEED_1) == 80

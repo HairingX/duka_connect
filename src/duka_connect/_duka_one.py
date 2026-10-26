@@ -1,10 +1,14 @@
 """The Duka One's points."""
-from datetime import date
+from datetime import date, time
 from typing import Any
 
 from ._points import (
     Point,
     decode_bool,
+    decode_clock_date,
+    decode_clock_time,
+    decode_ipv4,
+    decode_minutes_hours,
     decode_firmware_date,
     decode_firmware_version,
     decode_int,
@@ -13,6 +17,10 @@ from ._points import (
     decode_operating_minutes,
     decode_seconds_minutes_hours,
     encode_bool,
+    encode_clock_date,
+    encode_clock_time,
+    encode_execute,
+    encode_minutes_hours,
     encode_nothing,
     encode_state,
     int_encoder,
@@ -47,6 +55,29 @@ class PointKey:
     UNIT_TYPE = Key("unit_type", int)
     RESET_FILTER_TIMER = Key("reset_filter_timer", type(None))
     RESET_ALARMS = Key("reset_alarms", type(None))
+    RELAY_SENSOR_ENABLED = Key("relay_sensor_enabled", bool)
+    RELAY_SENSOR_ACTIVE = Key("relay_sensor_active", bool)
+    ANALOG_SENSOR_ENABLED = Key("analog_sensor_enabled", bool)
+    ANALOG_SENSOR_LEVEL = Key("analog_sensor_level", int)
+    ANALOG_SENSOR_THRESHOLD = Key("analog_sensor_threshold", int)
+    ANALOG_SENSOR_OVER_THRESHOLD = Key("analog_sensor_over_threshold", bool)
+    HUMIDITY_OVER_THRESHOLD = Key("humidity_over_threshold", bool)
+    SUPPLY_SPEED_1 = Key("supply_speed_1", int)
+    EXHAUST_SPEED_1 = Key("exhaust_speed_1", int)
+    SUPPLY_SPEED_2 = Key("supply_speed_2", int)
+    EXHAUST_SPEED_2 = Key("exhaust_speed_2", int)
+    SUPPLY_SPEED_3 = Key("supply_speed_3", int)
+    EXHAUST_SPEED_3 = Key("exhaust_speed_3", int)
+    FAN2_RPM = Key("fan2_rpm", int)
+    FILTER_INTERVAL = Key("filter_interval", int)
+    CLOCK_TIME = Key("clock_time", time)
+    CLOCK_DATE = Key("clock_date", date)
+    WEEKLY_SCHEDULE = Key("weekly_schedule", bool)
+    CLOUD_ENABLED = Key("cloud_enabled", bool)
+    IP_ADDRESS = Key("ip_address", str)
+    NIGHT_TIMER = Key("night_timer", int)
+    PARTY_TIMER = Key("party_timer", int)
+    RESTORE_FAN_SPEEDS = Key("restore_fan_speeds", type(None))
 
 
 DUKA_ONE: tuple[Point[Any], ...] = (
@@ -84,5 +115,44 @@ DUKA_ONE: tuple[Point[Any], ...] = (
         PollRate.FAST,
     ),
     Point(PointKey.UNIT_TYPE, 0xB9, 2, decode_int, poll_rate=PollRate.STATIC),
+    Point(PointKey.RELAY_SENSOR_ENABLED, 0x14, 1, decode_bool, encode_bool, PollRate.SLOW),
+    Point(PointKey.ANALOG_SENSOR_ENABLED, 0x16, 1, decode_bool, encode_bool, PollRate.SLOW),
+    Point(PointKey.ANALOG_SENSOR_LEVEL, 0x2D, 1, decode_int, unit="%"),
+    Point(PointKey.RELAY_SENSOR_ACTIVE, 0x32, 1, decode_bool),
+    *(
+        Point(key, parameter, 1, decode_int, int_encoder(1), PollRate.SLOW, minimum=10, maximum=255)
+        for key, parameter in (
+            (PointKey.SUPPLY_SPEED_1, 0x3A),
+            (PointKey.EXHAUST_SPEED_1, 0x3B),
+            (PointKey.SUPPLY_SPEED_2, 0x3C),
+            (PointKey.EXHAUST_SPEED_2, 0x3D),
+            (PointKey.SUPPLY_SPEED_3, 0x3E),
+            (PointKey.EXHAUST_SPEED_3, 0x3F),
+        )
+    ),
+    Point(PointKey.FAN2_RPM, 0x4B, 2, decode_int, poll_rate=PollRate.FAST, unit="rpm"),
+    Point(
+        PointKey.FILTER_INTERVAL, 0x63, 2, decode_int, int_encoder(2), PollRate.RARE,
+        unit="d", minimum=70, maximum=365,
+    ),
+    Point(PointKey.CLOCK_TIME, 0x6F, 3, decode_clock_time, encode_clock_time, PollRate.RARE),
+    Point(PointKey.CLOCK_DATE, 0x70, 4, decode_clock_date, encode_clock_date, PollRate.RARE),
+    Point(PointKey.WEEKLY_SCHEDULE, 0x72, 1, decode_bool, encode_bool, PollRate.SLOW),
+    Point(PointKey.CLOUD_ENABLED, 0x85, 1, decode_bool, encode_bool, PollRate.RARE),
+    Point(PointKey.IP_ADDRESS, 0xA3, 4, decode_ipv4, poll_rate=PollRate.RARE),
+    Point(
+        PointKey.ANALOG_SENSOR_THRESHOLD, 0xB8, 1, decode_int, int_encoder(1), PollRate.SLOW,
+        unit="%", minimum=5, maximum=100,
+    ),
+    Point(PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, decode_nothing, encode_execute, command=True),
+    *(
+        Point(
+            key, parameter, 2, decode_minutes_hours, encode_minutes_hours, PollRate.SLOW,
+            unit="min", minimum=0, maximum=23 * 60 + 59,
+        )
+        for key, parameter in ((PointKey.NIGHT_TIMER, 0x0302), (PointKey.PARTY_TIMER, 0x0303))
+    ),
+    Point(PointKey.HUMIDITY_OVER_THRESHOLD, 0x0304, 1, decode_bool),
+    Point(PointKey.ANALOG_SENSOR_OVER_THRESHOLD, 0x0305, 1, decode_bool),
 )
 """Every point a Duka One has."""
