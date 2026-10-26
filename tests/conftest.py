@@ -4,8 +4,7 @@ from collections.abc import AsyncIterator
 import pytest
 
 from duka_connect import Client
-from duka_connect._event_connect.testing import FakeClock
-from duka_connect.testing import SimulatedDuka
+from duka_connect.testing import FakeClock, SimulatedDuka
 
 
 @pytest.fixture

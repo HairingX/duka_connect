@@ -25,7 +25,7 @@ from duka_connect import (
     Write,
     WriteKind,
 )
-from duka_connect._event_connect.testing import FakeClock
+from duka_connect.testing import FakeClock
 from duka_connect._protocol import Function
 from duka_connect.testing import FILTER_DAYS, SimulatedDuka
 
