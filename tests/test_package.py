@@ -12,5 +12,5 @@ def test_everything_exported_exists() -> None:
 
 
 def test_every_point_has_its_own_key() -> None:
-    names = [point.key.name for point in duka_connect.DUKA_ONE]
+    names = [str(point.key) for point in duka_connect.DUKA_ONE]
     assert len(names) == len(set(names))

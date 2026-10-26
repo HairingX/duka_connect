@@ -1,58 +1,81 @@
 """What a point is: a parameter of the unit, and how its bytes become a value."""
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass
 from datetime import date, time
 from enum import IntEnum
-from typing import Any
 
-from ._values import Certainty, InvalidValueError, Key, PollRate
+from ._event_connect import Certainty, InvalidValueError, is_instance
+from ._event_connect import Point as BasePoint
 
 
 class Undecodable(Exception):
     """Bytes that name no value of the point."""
 
 
-@dataclass(frozen=True, slots=True)
-class Point[T]:
-    """One value the unit has.
+@dataclass(frozen=True, eq=False)
+class Point[T](BasePoint[T]):
+    """A parameter of the unit: its number, how many bytes it has, and how they become a value.
 
-    A point with `encode` can be written; a `command` point is written to make the unit do
-    something, and has no value to read. When its value changes, or a command is sent, the
-    points of `then_read` are read at once, and so on from those whose value changes in turn.
+    A point without `decode` cannot be read, such as a command; one without `encode` cannot be
+    written.
     """
 
-    key: Key[T]
     parameter: int
     size: int
-    decode: Callable[[bytes], T]
+    decode: Callable[[bytes], T] | None
     encode: Callable[[T], bytes] | None = None
-    poll_rate: PollRate = PollRate.MEDIUM
-    unit: str | None = None
-    minimum: int | None = None
-    maximum: int | None = None
-    command: bool = False
+    _: KW_ONLY
     certainty: Certainty = Certainty.REPORTED
-    then_read: tuple[Key[Any], ...] = ()
+
+    @property
+    def readable(self) -> bool:
+        """Whether the point can be read."""
+        return self.decode is not None
 
     @property
     def writable(self) -> bool:
         """Whether the point can be written."""
         return self.encode is not None
 
+    def problems(self) -> list[str]:
+        """Everything wrong with the point, as a point and as a parameter of the unit."""
+        found = super().problems()
+        if not 0 <= self.parameter <= 0xFFFF:
+            found.append(f"a parameter is 0 to FFFF, not {self.parameter:X}")
+        if not 1 <= self.size <= 255:
+            found.append(f"a value has 1 to 255 bytes, not {self.size}")
+        return found
+
     def to_bytes(self, value: T) -> bytes:
         """Encode a value to write.
 
         Raises:
-            InvalidValueError: the value is outside the point's limits.
+            ValueError: the point cannot be written.
+            InvalidValueError: the point does not take the value.
         """
         if self.encode is None:
-            raise TypeError(f"{self.key} cannot be written")
-        if isinstance(value, int) and not isinstance(value, (bool, IntEnum)):
-            if self.minimum is not None and value < self.minimum:
-                raise InvalidValueError(f"{self.key} is at least {self.minimum}, not {value}")
-            if self.maximum is not None and value > self.maximum:
-                raise InvalidValueError(f"{self.key} is at most {self.maximum}, not {value}")
+            raise ValueError(f"{self.key} cannot be written")
+        if not is_instance(value, self.key.type):
+            raise InvalidValueError(f"{self.key} takes a {self.key.type.__name__}, not {value!r}")
+        if self.limits is not None and isinstance(value, (int, float)) and not isinstance(value, bool):
+            problem = self.limits.problem(value)
+            if problem is not None:
+                raise InvalidValueError(f"{self.key}: {problem}")
         return self.encode(value)
+
+    def to_value(self, data: bytes) -> T:
+        """Decode the bytes the unit answered.
+
+        Raises:
+            ValueError: the point cannot be read.
+            Undecodable: the bytes name no value of the point.
+        """
+        if self.decode is None:
+            raise ValueError(f"{self.key} cannot be read")
+        try:
+            return self.decode(data)
+        except IndexError as error:
+            raise Undecodable(f"{data.hex()} is too short for {self.key}") from error
 
 
 def decode_bool(data: bytes) -> bool:
@@ -127,14 +150,15 @@ def decode_firmware_date(data: bytes) -> date:
         raise Undecodable(f"{data.hex()} is not a date") from error
 
 
-def decode_nothing(data: bytes) -> None:
-    """Read a command point, which has no value."""
-    return None
+def command_encoder(data: bytes) -> Callable[[bool], bytes]:
+    """Return an encoder that sends `data` for True, and raises `InvalidValueError` for anything
+    else: a command is sent with True."""
+    def encode(value: bool) -> bytes:
+        if value is not True:
+            raise InvalidValueError(f"A command is sent with True, not {value!r}")
+        return data
 
-
-def encode_nothing(value: None) -> bytes:
-    """Write a command point: the unit ignores the byte sent."""
-    return b"\x00"
+    return encode
 
 
 def decode_clock_time(data: bytes) -> time:
@@ -182,8 +206,3 @@ def encode_minutes_hours(value: int) -> bytes:
 def decode_ipv4(data: bytes) -> str:
     """Read an IPv4 address, sent as its four numbers in the order they are written."""
     return ".".join(str(byte) for byte in data[:4])
-
-
-def encode_execute(value: None) -> bytes:
-    """Write a command that is run by the value 1."""
-    return b"\x01"

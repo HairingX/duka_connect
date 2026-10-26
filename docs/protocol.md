@@ -73,30 +73,33 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `humidity_over_threshold` | `0304` | 1 | the humidity is over its threshold | |
 | `analog_sensor_over_threshold` | `0305` | 1 | the 0-10 V signal is over its threshold | |
 
-A command is sent with function 02, which the unit does not answer; the points it changes are
-read afterwards, once the client's command delay (1 s unless set) has passed, as nothing says when
-the unit has carried the command out. A setting is written with function 03, and the unit answers
-with the value it then has, so it needs no wait.
+A command is sent with function 02, which the unit does not answer, so nothing says when it has
+carried it out: the points it changes are read a second later. A setting is written with function
+03, and the unit answers with the value it then has, so it needs no wait.
 
-**Points read in turn.** The unit sends nothing by itself, and its points are polled at different
-rates, so one point can change long before another that follows from it is read again. Each point
-names the points its change affects: when a read or a write finds its value changed, or a command
-is sent, those are read at once, and so on from each of them that changed in turn; no point is read
-twice in one round.
+**Points read again.** The unit sends nothing by itself, and its points are polled at different
+rates, so one point can change long before another that follows from it is read again. A point
+names what its change affects (`on_change`), and a command what it changes (`on_write`): those
+are read after a wait, and, where it says so, again at that interval while they still change, up
+to a limit - two reads in a row that agree end it. A change read in turn sets off its own. A
+written setting's answer is read as any other, so its change sets off the same.
 
-| A change of | Reads at once |
-|---|---|
-| `alarm` | `rtc_battery_voltage`, `filter_replace`, `filter_timer` - what raises and clears it |
-| `filter_replace` | `filter_timer`, `alarm` |
-| `filter_interval` | `filter_timer`, `filter_replace` |
-| `power`, `speed`, `manual_speed` | `fan_rpm`, `fan2_rpm`; `power` also `boost` |
-| `boost` | `fan_rpm`, `fan2_rpm`, `humidity`, `humidity_over_threshold` |
-| `timer_mode` | `timer_countdown`, `fan_rpm`, `fan2_rpm` |
-| `humidity`, `humidity_threshold`, `humidity_sensor_enabled` | `humidity_over_threshold`, `boost` |
-| `analog_sensor_level`, `analog_sensor_threshold` | `analog_sensor_over_threshold` |
-| `reset_filter_timer` (sent) | `filter_timer`, `filter_replace`, `alarm` |
-| `reset_alarms` (sent) | `alarm`, `filter_replace` |
-| `restore_fan_speeds` (sent) | `supply_speed_1` … `exhaust_speed_3` |
+| A change of | Reads | After | Until settled, at most |
+|---|---|---|---|
+| `alarm` | `rtc_battery_voltage`, `filter_replace`, `filter_timer` - what raises and clears it | 10 s | 2 min |
+| `power` | `fan_rpm`, `fan2_rpm`, `boost` - a fan takes seconds to reach a new speed | 3 s | 30 s |
+| `speed`, `manual_speed` | `fan_rpm`, `fan2_rpm` | 3 s | 30 s |
+| `boost` | `fan_rpm`, `fan2_rpm`, `humidity`, `humidity_over_threshold` | 3 s | 30 s |
+| `timer_mode` | `timer_countdown`, `fan_rpm`, `fan2_rpm` | 3 s | 30 s |
+| `humidity` | `humidity_over_threshold`, `boost` | at once | |
+| `humidity_threshold`, `humidity_sensor_enabled` | `humidity_over_threshold`, `boost` | 1 s | |
+| `filter_replace` | `filter_timer`, `alarm` | at once | |
+| `filter_interval` | `filter_timer`, `filter_replace` | 1 s | |
+| `analog_sensor_level` | `analog_sensor_over_threshold` | at once | |
+| `analog_sensor_threshold` | `analog_sensor_over_threshold` | 1 s | |
+| `reset_filter_timer` (sent) | `filter_timer`, `filter_replace`, `alarm` | 1 s | |
+| `reset_alarms` (sent) | `alarm`, `filter_replace` | 1 s | |
+| `restore_fan_speeds` (sent) | `supply_speed_1` … `exhaust_speed_3` | 1 s | |
 
 **Ventilation modes.** Ventilation moves air one way all the time; whether in or out is set by
 the unit's DIP switch, and Duka recommends half of a home's units set each way, so that the
