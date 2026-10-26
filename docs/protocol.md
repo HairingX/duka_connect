@@ -53,7 +53,7 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `alarm` | `83` | 1 | 0 none, 1 alarm, 2 warning | |
 | `firmware_version`, `firmware_date` | `86` | 6 | major, minor, day, month, year in two bytes | |
 | `filter_replace` | `88` | 1 | 0 the filter is fine, 1 replace it | |
-| `ventilation_mode` | `B7` | 1 | 0 extract, 1 heat recovery, 2 supply | yes |
+| `ventilation_mode` | `B7` | 1 | 0 ventilation, 1 heat recovery, 2 supply | yes |
 | `unit_type` | `B9` | 2 | the kind of unit | |
 | `relay_sensor_enabled` | `14` | 1 | the relay sensor may start boost | yes |
 | `analog_sensor_enabled` | `16` | 1 | the 0-10 V sensor may start boost | yes |
@@ -75,6 +75,12 @@ A unit does not answer a wrong password, nor a write with function 02.
 
 A command is sent with function 02, which the unit does not answer; the points it changes are
 read afterwards.
+
+**Ventilation modes.** Ventilation moves air one way all the time; whether in or out is set by
+the unit's DIP switch, and Duka recommends half of a home's units set each way, so that the
+ventilation is balanced (DUKA One Pro 50 S Wi-Fi user manual, pages 12 and 14). Heat recovery
+alternates, 70 seconds in and 70 seconds out, through the ceramic heat exchanger. Supply only
+brings air in.
 
 The guide gives the separate fan speeds `3A`-`3F`, the filter interval `63` and the restore
 command `012A` for some models only; a unit without them answers `FD`, and they are `MISSING`.
