@@ -15,9 +15,9 @@ class VentilationMode(IntEnum):
     """Which way the air moves."""
 
     VENTILATION = 0
-    """Extract only: air is taken out of the room."""
+    """One way, all the time: in or out, as the unit's DIP switch sets it."""
     HEAT_RECOVERY = 1
-    """Alternating in and out through the heat exchanger."""
+    """Alternating in and out through the heat exchanger, 70 seconds each way."""
     SUPPLY = 2
     """Supply only: outdoor air is brought into the room."""
 
