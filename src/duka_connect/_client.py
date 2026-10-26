@@ -1,55 +1,54 @@
-"""The client: connecting to a unit, reading what is subscribed to, and writing."""
+"""The client: connecting to a unit, reading what is due, and writing."""
 import asyncio
 import logging
-import time
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
 
 from ._duka_one import DUKA_ONE, PointKey
-from ._points import Point, Undecodable
-from ._protocol import PORT, Function, encode_request
-from ._transport import UdpLink
-from ._values import (
+from ._event_connect import (
     CannotConnectError,
+    Clock,
     DataValue,
-    InvalidValueError,
     Key,
     NotConnectedError,
     PollRate,
     Quality,
     ReadOnlyError,
+    Refresh,
+    Scheduler,
+    Selector,
     Status,
+    StatusCallback,
+    Subscriptions,
+    SystemClock,
     UnsupportedDeviceError,
-    WriteError,
+    ValueCallback,
+    Write,
+    WriteKind,
+    changed,
+    select,
+    selector,
+    stale,
+    tell,
 )
+from ._points import Point, Undecodable
+from ._protocol import PORT, Function, encode_request
+from ._transport import UdpLink
 
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_PASSWORD = "1111"
 """The password a Duka One has until it is changed in Duka's app."""
 
-type ValueCallback[T] = Callable[[Key[T], DataValue[T] | None, DataValue[T]], None]
-"""Told a point's key, its previous value, or `None` the first time, and its new value."""
-
-type StatusCallback = Callable[[Status], None]
-"""Told the client's new status."""
-
 _MAX_PARAMETERS_PER_REQUEST = 32
-
-
-class _Subscription:
-    __slots__ = ("callback", "poll")
-
-    def __init__(self, callback: ValueCallback[Any], poll: bool) -> None:
-        self.callback = callback
-        self.poll = poll
 
 
 class Client:
     """A Duka One on the local network.
 
-    The client never reads on its own: `poll()` reads the subscribed points that are due, and
-    does nothing when none is.
+    The client never reads on its own: `poll()` reads what is due - the subscribed points on their
+    poll rates, and what a write or a change has asked to be read again - and does nothing when
+    nothing is.
     """
 
     def __init__(
@@ -61,34 +60,40 @@ class Client:
         port: int = PORT,
         timeout: float = 2.0,
         attempts: int = 3,
-        command_delay: float = 1.0,
-        clock: Callable[[], float] = time.monotonic,
+        clock: Clock | None = None,
+        read_only: bool = False,
     ) -> None:
         """Set up a client; nothing is sent until `connect()`.
 
         Args:
             timeout: seconds to wait for each answer.
             attempts: how many times a request is sent before the unit counts as not answering.
-            command_delay: seconds to wait after a command before reading what it changed, as
-                the unit does not answer a command.
-            clock: the monotonic clock polling is planned by.
+            read_only: refuse every write.
         """
         self.device_id = device_id
         self._password = password
         self._link = UdpLink(host, port)
         self._timeout = timeout
         self._attempts = attempts
-        self._command_delay = command_delay
-        self._clock = clock
-        self._points: dict[str, Point[Any]] = {point.key.name: point for point in DUKA_ONE}
+        self._clock: Clock = clock or SystemClock()
+        self._read_only = read_only
+        self._points: dict[str, Point[Any]] = {point.key: point for point in DUKA_ONE}
+        self._readable = tuple(point for point in DUKA_ONE if point.readable)
         self._sizes = {point.parameter: point.size for point in DUKA_ONE}
         self._values: dict[str, DataValue[Any]] = {}
-        self._read_at: dict[str, float] = {}
-        self._intervals: dict[str, float] = {}
-        self._subscriptions: dict[str, list[_Subscription]] = {}
-        self._status_callbacks: list[StatusCallback] = []
-        self._status = Status.DISCONNECTED
+        self._subscriptions = Subscriptions()
+        self._polled_keys: set[str] = set()
+        self._scheduled_keys = frozenset(point.key for point in self._readable)
+        self._scheduler = Scheduler(self._clock)
+        self._scheduler.set_points(self._readable)
+        self._status: dict[Status, DataValue[bool]] = {
+            status: DataValue(False, Quality.GOOD, self._clock.now()) for status in Status
+        }
+        self._status_callbacks: dict[Status, list[StatusCallback]] = {status: [] for status in Status}
+        self._poll_lock = asyncio.Lock()
         self._connected = False
+
+    # ============================================================================== the unit
 
     @property
     def host(self) -> str:
@@ -96,19 +101,14 @@ class Client:
         return self._link.host
 
     @property
-    def points(self) -> Mapping[str, Point[Any]]:
-        """Every point, by its key's name."""
-        return self._points
-
-    @property
-    def status(self) -> Status:
-        """Whether the unit answered the last request."""
-        return self._status
+    def points(self) -> Mapping[Key[Any], Point[Any]]:
+        """Every point, by its key."""
+        return cast(Mapping[Key[Any], Point[Any]], self._points)
 
     @property
     def unit_type(self) -> int | None:
         """The unit type the unit reported when connecting."""
-        value = self._values.get(PointKey.UNIT_TYPE.name)
+        value = self._values.get(PointKey.UNIT_TYPE)
         return None if value is None else cast(int | None, value.value)
 
     async def connect(self) -> None:
@@ -119,16 +119,13 @@ class Client:
                 may be wrong, as a unit does not answer a wrong password.
             UnsupportedDeviceError: the unit answered, but not as a Duka One does.
         """
-        readable = [point for point in self._points.values() if not point.command]
-        try:
-            await self._read(readable)
-        except TimeoutError as error:
+        if not await self._read(self._readable):
             raise CannotConnectError(
                 f"No answer from {self.host}; check its address, device id and password"
-            ) from error
-        unit_type = self._values.get(PointKey.UNIT_TYPE.name)
-        if unit_type is None or unit_type.quality is not Quality.GOOD:
-            raise UnsupportedDeviceError(f"{self.host} did not report a unit type", None)
+            )
+        unit_type = self._values.get(PointKey.UNIT_TYPE)
+        if unit_type is None or not unit_type.is_good:
+            raise UnsupportedDeviceError(f"{self.host} did not report a unit type", {"unit_type": None})
         self._connected = True
         _LOGGER.debug("Connected to %s, unit type %s", self.host, unit_type.value)
 
@@ -137,300 +134,293 @@ class Client:
         self._connected = False
         await self._link.close()
 
+    # ================================================================================ values
+
     def value[T](self, key: Key[T]) -> DataValue[T] | None:
-        """Return a point's current value, or `None` before it is read."""
+        """A point's current value, or None before it is read.
+
+        Raises:
+            KeyError: a Duka One has no such point.
+            TypeError: the point's value is of another type than `key` says.
+        """
         self._point(key)
-        return cast(DataValue[T] | None, self._values.get(key.name))
+        return cast(DataValue[T] | None, self._values.get(key))
 
-    def subscribe[T](
-        self, key: Key[T], callback: ValueCallback[T], *, poll: bool = True
-    ) -> Callable[[], None]:
-        """Call `callback` with the current value, if there is one, and on every change.
+    def values(self) -> Mapping[Key[Any], DataValue[Any]]:
+        """Every value read so far, by key."""
+        return {self._points[key].key: value for key, value in self._values.items()}
 
-        Args:
-            poll: whether the point is read on its poll rate for this subscription.
+    def status(self, status: Status) -> DataValue[bool]:
+        """What the client knows of `status` now."""
+        return self._status[status]
 
-        Returns:
-            A function that ends the subscription.
+    # ============================================================================== interest
+
+    def subscribe[T](self, key: Key[T], callback: ValueCallback[T], *, poll: bool = True) -> Callable[[], None]:
+        """Call `callback` on every change of `key`'s value or quality, starting with the current
+        value. With `poll`, the point is also read on its schedule. Returns the unsubscriber.
+
+        Raises:
+            KeyError: a Duka One has no such point.
+            TypeError: the point's value is of another type than `key` says, or it is a command,
+                which has no value.
         """
         point = self._point(key)
-        if point.command:
+        if not point.readable:
             raise TypeError(f"{key} is a command, and has no value")
-        subscription = _Subscription(cast(ValueCallback[Any], callback), poll)
-        self._subscriptions.setdefault(key.name, []).append(subscription)
-        current = self._values.get(key.name)
+        subscriber = self._subscriptions.add(key, cast(ValueCallback[Any], callback), polls=poll)
+        self._update_polling(key)
+        current = self._values.get(key)
         if current is not None:
-            self._call(subscription, key, None, current)
+            tell(subscriber, None, current)
 
         def unsubscribe() -> None:
-            subscriptions = self._subscriptions.get(key.name, [])
-            if subscription in subscriptions:
-                subscriptions.remove(subscription)
+            self._subscriptions.remove(key, subscriber)
+            self._update_polling(key)
 
         return unsubscribe
 
-    def subscribe_status(self, callback: StatusCallback) -> Callable[[], None]:
-        """Call `callback` with the status now and on every change.
+    def subscribe_status(self, status: Status, callback: StatusCallback) -> Callable[[], None]:
+        """Call `callback` on every change of `status`, starting with its current value.
 
-        Returns:
-            A function that ends the subscription.
+        Returns the unsubscriber.
         """
-        self._status_callbacks.append(callback)
-        callback(self._status)
+        callbacks = self._status_callbacks[status]
+        callbacks.append(callback)
+        _tell_status(callback, status, None, self._status[status])
 
         def unsubscribe() -> None:
-            if callback in self._status_callbacks:
-                self._status_callbacks.remove(callback)
+            if callback in callbacks:
+                callbacks.remove(callback)
 
         return unsubscribe
 
-    def set_poll_interval(self, key: Key[Any], seconds: float | None) -> None:
-        """Read a point every `seconds`, or on its poll rate again with `None`."""
-        self._point(key)
-        if seconds is None:
-            self._intervals.pop(key.name, None)
-        elif seconds <= 0:
-            raise ValueError("An interval is longer than 0 seconds")
+    def set_polling(self, key: str, enabled: bool = True) -> None:
+        """Poll `key` on its schedule even without a subscriber; False stops that."""
+        if enabled:
+            self._polled_keys.add(key)
         else:
-            self._intervals[key.name] = seconds
+            self._polled_keys.discard(key)
+        self._update_polling(key)
 
-    def _interval(self, point: Point[Any]) -> float | None:
-        if point.key.name in self._intervals:
-            return self._intervals[point.key.name]
-        if point.poll_rate is PollRate.STATIC:
-            return None
-        return float(point.poll_rate)
+    def set_scheduled_polling(self, enabled: bool) -> None:
+        """Whether `poll()` reads on the schedule. Off, it reads only what `refresh()` and writes
+        ask for."""
+        self._scheduler.set_scheduled(enabled)
 
-    def _due(self, now: float) -> list[Point[Any]]:
-        due: list[Point[Any]] = []
-        for name, subscriptions in self._subscriptions.items():
-            if not any(subscription.poll for subscription in subscriptions):
-                continue
-            point = self._points[name]
-            interval = self._interval(point)
-            if interval is None:
-                continue
-            read_at = self._read_at.get(name)
-            if read_at is None or now - read_at >= interval:
-                due.append(point)
-        return due
+    def set_poll_interval(self, target: PollRate | str, seconds: float | None) -> float | None:
+        """Override how often a poll rate or a key is read; None restores its own interval.
 
-    def seconds_until_next_poll(self) -> float | None:
-        """Return how long until a subscribed point is due, or `None` when none will be."""
-        now = self._clock()
-        waits: list[float] = []
-        for name, subscriptions in self._subscriptions.items():
-            if not any(subscription.poll for subscription in subscriptions):
-                continue
-            interval = self._interval(self._points[name])
-            if interval is None:
-                continue
-            read_at = self._read_at.get(name)
-            waits.append(0.0 if read_at is None else max(0.0, read_at + interval - now))
-        return min(waits, default=None)
+        Returns the interval in effect.
+        """
+        return self._scheduler.set_poll_interval(target, seconds)
+
+    def _update_polling(self, key: str) -> None:
+        if key in self._scheduled_keys:
+            self._scheduler.set_polled(key, key in self._polled_keys or self._subscriptions.polled(key))
+
+    # =============================================================================== reading
 
     async def poll(self) -> None:
-        """Read the subscribed points that are due.
+        """Read whatever is due. A call made during a pass waits for it instead of starting another.
 
-        A unit that does not answer makes the status `DISCONNECTED` and the points read stale;
+        A unit that does not answer makes `Status.CONNECTED` false and the points read stale;
         nothing is raised.
         """
         self._require_connected()
-        due = self._due(self._clock())
-        if not due:
-            return
-        try:
-            await self._read(due)
-        except TimeoutError:
-            _LOGGER.debug("%s did not answer a poll", self.host)
+        if self._poll_lock.locked():
+            async with self._poll_lock:
+                return
+        async with self._poll_lock:
+            due = self._scheduler.due()
+            if due:
+                await self._read([self._points[key] for key in due])
 
-    async def refresh(self, keys: Iterable[Key[Any]] | None = None) -> None:
-        """Read points now: those given, or every point.
+    def seconds_until_next_poll(self) -> float | None:
+        """Seconds until `poll()` has something to do, 0 if it has now; None if it never will."""
+        due = self._scheduler.next_due()
+        return None if due is None else max(0.0, due - self._clock.monotonic())
 
-        Raises:
-            CannotConnectError: the unit did not answer.
+    async def refresh(self, targets: PollRate | Selector | Sequence[str] | None = None, *,
+                      after: float = 0.0) -> None:
+        """Read a poll rate's points, a selection, or everything - now, or `after` seconds from now.
+
+        A unit that does not answer makes `Status.CONNECTED` false and the points read stale;
+        nothing is raised.
         """
         self._require_connected()
-        if keys is None:
-            points = [point for point in self._points.values() if not point.command]
+        if targets is None:
+            points = self._readable
+        elif isinstance(targets, PollRate):
+            points = tuple(point for point in self._readable if point.poll_rate is targets)
         else:
-            points = [self._point(key) for key in keys]
+            points = select(self._readable, selector(targets))
+        if after > 0:
+            self._scheduler.refresh([point.key for point in points], after=after, force=True)
+            return
+        await self._read(points)
+
+    async def _read(self, points: Sequence[Point[Any]]) -> bool:
+        """Read `points`, and return whether the unit answered every request."""
+        parameters = list(dict.fromkeys(point.parameter for point in points))
+        answered = True
+        for start in range(0, len(parameters), _MAX_PARAMETERS_PER_REQUEST):
+            chunk = set(parameters[start:start + _MAX_PARAMETERS_PER_REQUEST])
+            chunk_points = [point for point in points if point.parameter in chunk]
+            packet = encode_request(
+                self.device_id, self._password, Function.READ, [(number, None) for number in sorted(chunk)]
+            )
+            values = await self._request(packet)
+            if values is None:
+                answered = False
+                for point in chunk_points:
+                    previous = self._values.get(point.key)
+                    self._store(point, stale(previous, self._clock.now()), previous, success=False)
+                continue
+            for point in chunk_points:
+                if point.parameter in values:
+                    previous = self._values.get(point.key)
+                    self._store(point, self._decoded(point, values[point.parameter]), previous, success=True)
+        return answered
+
+    def _decoded(self, point: Point[Any], data: bytes | None) -> DataValue[Any]:
+        now = self._clock.now()
+        if data is None:
+            return DataValue(None, Quality.MISSING, now)
         try:
-            await self._read([point for point in points if not point.command])
-        except TimeoutError as error:
-            raise CannotConnectError(f"No answer from {self.host}") from error
+            return DataValue(point.to_value(data), Quality.GOOD, now, tuple(data))
+        except Undecodable:
+            return DataValue(None, Quality.NO_DATA, now, tuple(data))
 
-    async def write[T](self, key: Key[T], value: T) -> None:
-        """Write a value, or run a command with the value `None`.
+    def _store(self, point: Point[Any], data: DataValue[Any], previous: DataValue[Any] | None, *,
+               success: bool) -> None:
+        self._values[point.key] = data
+        self._subscriptions.report(point, data)
+        trigger = point.on_change
+        if trigger is not None and previous is not None and changed(previous, data, trigger.when):
+            self._schedule(trigger, trigger.after or 0.0)
+        self._scheduler.record(point.key, data, success=success)
+
+    def _schedule(self, refresh: Refresh, after: float) -> None:
+        keys = [point.key for point in select(self._readable, refresh.targets)]
+        if keys:
+            self._scheduler.refresh(keys, after=after, until_stable=refresh.until_stable)
+
+    # =============================================================================== writing
+
+    async def write[T](self, key: Key[T], value: T) -> bool:
+        """Write `value` to `key`, and return whether the unit took it. A command is sent with True.
+
+        A setting is answered with the value the unit then has; a command is not answered, so
+        it counts as taken once sent.
 
         Raises:
-            ReadOnlyError: the point cannot be written.
-            InvalidValueError: the value is outside the point's limits.
-            WriteError: the unit did not take the value.
-            CannotConnectError: the unit did not answer.
+            ReadOnlyError: the client is read-only.
+            NotConnectedError: the client is not connected.
+            KeyError: a Duka One has no such point.
+            ValueError: the point cannot be written.
+            InvalidValueError: the point does not take the value.
+            TypeError: the point's value is of another type than `key` says.
         """
-        await self.write_many([(key, value)])
+        return await self.write_sequence([Write(key, value)])
 
-    async def write_many(self, writes: Sequence[tuple[Key[Any], Any]]) -> None:
-        """Write several values in one request, in order.
+    async def write_sequence(self, writes: Sequence[Write[Any]]) -> bool:
+        """Write several values as one operation, and return whether the unit took all of them.
 
-        Raises:
-            ReadOnlyError: a point cannot be written.
-            InvalidValueError: a value is outside its point's limits.
-            WriteError: the unit did not take a value.
-            CannotConnectError: the unit did not answer.
+        Every value is checked before anything is sent. The settings go in one request, in order,
+        then the commands.
         """
         self._require_connected()
         settings: list[tuple[Point[Any], bytes]] = []
         commands: list[tuple[Point[Any], bytes]] = []
-        for key, value in writes:
-            point = self._point(key)
-            if not point.writable:
-                raise ReadOnlyError(f"{key} cannot be written")
-            if value is not None and not isinstance(value, point.key.type):
-                raise InvalidValueError(f"{key} takes a {point.key.type.__name__}, not {value!r}")
-            encoded = point.to_bytes(value)
-            (commands if point.command else settings).append((point, encoded))
+        for write in writes:
+            point = self._writable_point(write.key)
+            encoded = point.to_bytes(write.value)
+            (commands if point.write_kind is WriteKind.COMMAND else settings).append((point, encoded))
+        self._set_status(Status.WRITE_PENDING, True)
         try:
+            taken = True
             if settings:
-                await self._write_settings(settings)
-            if commands:
-                # The unit does not answer a command; what it did is read back.
+                taken = await self._write_settings(settings)
+            if commands and taken:
                 packet = encode_request(
                     self.device_id, self._password, Function.WRITE,
                     [(point.parameter, data) for point, data in commands],
                 )
                 await self._link.send(packet)
-                # Nothing says when the unit has carried a command out; read too soon and the
-                # old value comes back until the next poll.
-                await asyncio.sleep(self._command_delay)
-                await self._read_following([point for point, _ in commands], frozenset())
-        except TimeoutError as error:
-            raise CannotConnectError(f"No answer from {self.host}") from error
+                for point, _ in commands:
+                    self._written(point)
+            return taken
+        finally:
+            self._set_status(Status.WRITE_PENDING, False)
 
-    async def _write_settings(self, settings: list[tuple[Point[Any], bytes]]) -> None:
+    async def _write_settings(self, settings: list[tuple[Point[Any], bytes]]) -> bool:
         packet = encode_request(
             self.device_id, self._password, Function.WRITE_READ,
             [(point.parameter, data) for point, data in settings],
         )
-        response = await self._request(packet)
-        refused: list[str] = []
+        values = await self._request(packet)
+        if values is None:
+            return False
+        taken = True
         for point, data in settings:
-            answered = response.get(point.parameter)
+            answered = values.get(point.parameter)
             if answered != data:
-                refused.append(f"{point.key} (sent {data.hex()}, unit has {answered.hex() if answered else 'none'})")
-        written = [point for point, _ in settings]
-        changed = self._store(response, written)
-        await self._read_following(changed, frozenset(point.key.name for point in written))
-        if refused:
-            raise WriteError("The unit did not take " + ", ".join(refused))
+                taken = False
+                _LOGGER.debug("%s did not take %s: sent %s, it has %s", self.host, point.key, data.hex(),
+                              "none" if answered is None else answered.hex())
+            if point.parameter in values and point.readable:
+                previous = self._values.get(point.key)
+                self._store(point, self._decoded(point, values[point.parameter]), previous, success=True)
+            if answered == data:
+                self._written(point)
+        return taken
 
-    async def _request(self, packet: bytes) -> Mapping[int, bytes | None]:
+    def _written(self, point: Point[Any]) -> None:
+        """Schedule what the point's write disturbs."""
+        effect = point.on_write
+        if effect is None:
+            return
+        after = effect.after if effect.after is not None else point.read_back_after or 0.0
+        self._schedule(effect, after)
+
+    def _writable_point(self, key: Key[Any]) -> Point[Any]:
+        if self._read_only:
+            raise ReadOnlyError(f"refused to write '{key}': the client is read-only")
+        point = self._point(key)
+        if not point.writable:
+            raise ValueError(f"'{key}' cannot be written")
+        return point
+
+    # ============================================================================= internals
+
+    async def _request(self, packet: bytes) -> Mapping[int, bytes | None] | None:
+        """Send a request, and return the unit's answer, or None if it gave none."""
         try:
             response = await self._link.request(
                 packet, self.device_id, self._sizes, self._timeout, self._attempts
             )
         except TimeoutError:
-            self._set_status(Status.DISCONNECTED)
-            raise
-        self._set_status(Status.CONNECTED)
+            if self._status[Status.CONNECTED].value:
+                _LOGGER.debug("%s stopped answering", self.host)
+            self._set_status(Status.CONNECTED, False)
+            return None
+        self._set_status(Status.CONNECTED, True)
         return response.values
 
-    async def _read(self, points: Sequence[Point[Any]], done: frozenset[str] = frozenset()) -> None:
-        """Read points, then read on from those whose value changed."""
-        changed: list[Point[Any]] = []
-        parameters = list(dict.fromkeys(point.parameter for point in points))
-        for start in range(0, len(parameters), _MAX_PARAMETERS_PER_REQUEST):
-            chunk = parameters[start:start + _MAX_PARAMETERS_PER_REQUEST]
-            chunk_points = [point for point in points if point.parameter in chunk]
-            packet = encode_request(
-                self.device_id, self._password, Function.READ, [(number, None) for number in chunk]
-            )
-            try:
-                values = await self._request(packet)
-            except TimeoutError:
-                self._mark_failed(chunk_points)
-                raise
-            changed += self._store(values, chunk_points)
-        await self._read_following(changed, done | {point.key.name for point in points})
-
-    async def _read_following(self, points: Sequence[Point[Any]], done: frozenset[str]) -> None:
-        """Read the points that `points` are followed by, except those in `done`."""
-        following = {
-            key.name: self._points[key.name]
-            for point in points for key in point.then_read
-            if key.name in self._points and key.name not in done
-        }
-        if following:
-            await self._read(list(following.values()), done)
-
-    def _store(self, values: Mapping[int, bytes | None], points: Sequence[Point[Any]]) -> list[Point[Any]]:
-        """Store the values read, and return the points whose value changed from a good one."""
-        changed: list[Point[Any]] = []
-        now = self._clock()
-        stamp = time.time()
-        for point in points:
-            self._read_at[point.key.name] = now
-            if point.parameter not in values:
-                continue
-            data = values[point.parameter]
-            if data is None:
-                new: DataValue[Any] = DataValue(None, Quality.MISSING, stamp, None)
-            else:
-                try:
-                    new = DataValue(point.decode(data), Quality.GOOD, stamp, data)
-                except (Undecodable, IndexError):
-                    new = DataValue(None, Quality.NO_DATA, stamp, data)
-            old = self._values.get(point.key.name)
-            if old is not None and old.quality is Quality.GOOD and old.value != new.value:
-                changed.append(point)
-            self._update(point.key, new)
-        return changed
-
-    def _mark_failed(self, points: Sequence[Point[Any]]) -> None:
-        now = self._clock()
-        for point in points:
-            self._read_at[point.key.name] = now
-            old = self._values.get(point.key.name)
-            if old is None or old.quality is Quality.OFFLINE:
-                new: DataValue[Any] = DataValue(None, Quality.OFFLINE, None, None)
-            elif old.quality is Quality.GOOD:
-                new = DataValue(old.value, Quality.STALE, old.timestamp, old.raw)
-            else:
-                continue
-            self._update(point.key, new)
-
-    def _update(self, key: Key[Any], new: DataValue[Any]) -> None:
-        old = self._values.get(key.name)
-        self._values[key.name] = new
-        if old is not None and (old.value, old.quality) == (new.value, new.quality):
+    def _set_status(self, status: Status, value: bool) -> None:
+        old = self._status[status]
+        if old.value is value:
             return
-        for subscription in list(self._subscriptions.get(key.name, ())):
-            self._call(subscription, key, old, new)
-
-    @staticmethod
-    def _call(
-        subscription: _Subscription, key: Key[Any], old: DataValue[Any] | None, new: DataValue[Any]
-    ) -> None:
-        try:
-            subscription.callback(key, old, new)
-        except Exception:
-            _LOGGER.exception("A callback for %s raised", key)
-
-    def _set_status(self, status: Status) -> None:
-        if status is self._status:
-            return
-        self._status = status
-        for callback in list(self._status_callbacks):
-            try:
-                callback(status)
-            except Exception:
-                _LOGGER.exception("A status callback raised")
+        new = DataValue(value, Quality.GOOD, self._clock.now())
+        self._status[status] = new
+        for callback in list(self._status_callbacks[status]):
+            _tell_status(callback, status, old, new)
 
     def _point(self, key: Key[Any]) -> Point[Any]:
-        point = self._points.get(key.name)
+        point = self._points.get(key)
         if point is None:
-            raise KeyError(f"A Duka One has no point {key}")
+            raise KeyError(f"A Duka One has no point {key!r}")
         if point.key.type is not key.type:
             raise TypeError(f"{key} is a {point.key.type.__name__}, not a {key.type.__name__}")
         return point
@@ -438,3 +428,13 @@ class Client:
     def _require_connected(self) -> None:
         if not self._connected:
             raise NotConnectedError("The client is not connected")
+
+
+def _tell_status(callback: StatusCallback, status: Status, old: DataValue[bool] | None,
+                 new: DataValue[bool]) -> None:
+    """Call one status subscriber; its error is logged and kept from the others."""
+    try:
+        callback(status, old, new)
+    except Exception:
+        _LOGGER.exception("a subscriber to %s raised", status)
+

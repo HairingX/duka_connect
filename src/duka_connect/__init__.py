@@ -5,27 +5,37 @@ discovery. A simulated unit for tests is in `duka_connect.testing`.
 """
 from importlib.metadata import version as _installed_version
 
-from ._client import DEFAULT_PASSWORD, Client, StatusCallback, ValueCallback
+from ._client import DEFAULT_PASSWORD, Client
 from ._discovery import DiscoveredDevice, discover
 from ._duka_one import DUKA_ONE, PointKey
-from ._points import Point
-from ._protocol import PORT, ProtocolError
-from ._states import AlarmLevel, Speed, TimerMode, VentilationMode
-from ._values import (
+from ._event_connect import (
     CannotConnectError,
     Certainty,
+    Change,
     ClientError,
+    Clock,
     DataValue,
     InvalidValueError,
     Key,
+    Labels,
+    Limits,
     NotConnectedError,
     PollRate,
     Quality,
     ReadOnlyError,
+    Refresh,
     Status,
+    StatusCallback,
+    SystemClock,
+    Unit,
     UnsupportedDeviceError,
-    WriteError,
+    ValueCallback,
+    Write,
+    WriteKind,
 )
+from ._points import Point
+from ._protocol import PORT, ProtocolError
+from ._states import AlarmLevel, Speed, TimerMode, VentilationMode
 
 __version__ = _installed_version("duka_connect")
 __all__ = [
@@ -35,12 +45,16 @@ __all__ = [
     "AlarmLevel",
     "CannotConnectError",
     "Certainty",
+    "Change",
     "Client",
     "ClientError",
+    "Clock",
     "DataValue",
     "DiscoveredDevice",
     "InvalidValueError",
     "Key",
+    "Labels",
+    "Limits",
     "NotConnectedError",
     "Point",
     "PointKey",
@@ -48,13 +62,17 @@ __all__ = [
     "ProtocolError",
     "Quality",
     "ReadOnlyError",
+    "Refresh",
     "Speed",
     "Status",
     "StatusCallback",
+    "SystemClock",
     "TimerMode",
+    "Unit",
     "UnsupportedDeviceError",
     "ValueCallback",
     "VentilationMode",
-    "WriteError",
+    "Write",
+    "WriteKind",
     "discover",
 ]

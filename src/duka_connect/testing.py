@@ -1,8 +1,10 @@
-"""A simulated Duka One, for testing code that uses this library without a unit."""
+"""A simulated Duka One, and a clock that moves only when told, for testing code that uses this
+library without a unit."""
 import asyncio
 from collections.abc import Iterable, Mapping
 
 from ._duka_one import DUKA_ONE
+from ._event_connect.testing import FakeClock
 from ._protocol import (
     SEARCH_DEVICE_ID,
     Function,
@@ -154,3 +156,6 @@ class SimulatedDuka(asyncio.DatagramProtocol):
                 self.values[speed] = DEFAULT_VALUES[speed]
         elif number in self.values:
             self.values[number] = value
+
+
+__all__ = ["DEFAULT_VALUES", "FILTER_DAYS", "FakeClock", "SimulatedDuka"]

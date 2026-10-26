@@ -23,11 +23,11 @@ async def test_every_point_of_a_real_unit_is_read() -> None:
     try:
         print(f"\nUnit type: {client.unit_type}")
         for name, point in client.points.items():
-            if point.command:
+            if not point.readable:
                 continue
             value = client.value(point.key)
             assert value is not None, name
-            raw = value.raw.hex() if value.raw is not None else "-"
+            raw = bytes(value.raw).hex() or "-"
             print(f"{name:26} {value.quality.name:8} {value.value!s:22} raw {raw}")
             assert value.quality in (Quality.GOOD, Quality.MISSING, Quality.NO_DATA), name
     finally:

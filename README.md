@@ -56,37 +56,45 @@ asyncio.run(main())
 
 ### Values
 
-Every value is a `DataValue` with `.value`, `.quality`, `.timestamp`, and `.raw`: the bytes the
-unit answered.
+Every value is a `DataValue` with `.value`, `.quality`, `.timestamp` (when the unit answered,
+in UTC), and `.raw`: the bytes the unit answered.
 
 | Quality | Meaning |
 |---|---|
 | `GOOD` | A value the unit answered. |
 | `NO_DATA` | The unit answered a number no state names. |
 | `STALE` | The last read failed; the value is the last good one. |
-| `OFFLINE` | The unit has not answered since the client connected. |
 | `MISSING` | The unit says it does not have this value. |
 
 A subscribed point is read on its poll rate: `FAST` 10 s, `MEDIUM` 30 s, `SLOW` 60 s, `RARE`
-15 min, or `STATIC`, once when connecting. `set_poll_interval(key, seconds)` changes one. A point
-whose value changes has the points it affects read at once, such as the battery and filter when
-the alarm clears.
+15 min, or `STATIC`, once when connecting. `set_poll_interval(key or poll rate, seconds)` changes
+one, and `refresh()` reads now.
+
+A point names what its change affects, in `on_change`, and a command what it changes, in
+`on_write`: a `Refresh` of those points, after a wait, and read again until they settle where it
+says so. When the alarm clears, the battery and filter are read 10 seconds later, and again every
+10 seconds while they change, for up to 2 minutes; a new speed has the fans read 3 seconds later,
+until they settle. What is read again is what is subscribed to. `docs/protocol.md` lists every one.
+
+`client.status(Status.CONNECTED)` says whether the unit answers, and
+`subscribe_status(Status.CONNECTED, callback)` tells every change.
 
 ### Writing
 
 ```python
-from duka_connect import PointKey, Speed, VentilationMode
+from duka_connect import PointKey, Speed, VentilationMode, Write
 
 await client.write(PointKey.VENTILATION_MODE, VentilationMode.HEAT_RECOVERY)
-await client.write_many([(PointKey.SPEED, Speed.MANUAL), (PointKey.MANUAL_SPEED, 120)])
-await client.write(PointKey.RESET_FILTER_TIMER, None)   # a command
+await client.write_sequence([Write(PointKey.SPEED, Speed.MANUAL), Write(PointKey.MANUAL_SPEED, 120)])
+await client.write(PointKey.RESET_FILTER_TIMER, True)   # a command, sent with True
 ```
 
-A setting is answered by the unit with its new value. A command is not answered, so what it
-changed is read back after `command_delay` seconds, 1 unless given to `Client`.
+A write returns whether the unit took it. A setting is answered by the unit with its new value,
+which the client then holds. A command is not answered, so what it changed is read a second after
+it is sent, at the next `poll()`.
 
-A value outside a point's limits raises `InvalidValueError` before anything is sent; a value the
-unit does not take raises `WriteError`.
+A value outside a point's limits, or of another type, raises `InvalidValueError` before anything
+is sent; a point that cannot be written raises `ValueError`.
 
 | Error | Meaning |
 |---|---|

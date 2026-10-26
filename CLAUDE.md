@@ -46,8 +46,12 @@ obvious from the name - one or two lines, no narrative.
   real values live in the gitignored `mysecrets.py` or in environment variables.
 - The unit's password is a credential: it is never logged.
 - A point is `Certainty.REPORTED` until it has been read on a Duka One.
-- A point that changes another names it in `then_read`, so the other is read at once rather
-  than at its own, perhaps rarer, poll; `docs/protocol.md` lists them.
+- A point that changes another names it in a `Refresh`, `on_change` or `on_write`, so the other
+  is read soon rather than at its own, perhaps rarer, poll; `docs/protocol.md` lists them.
+- `src/duka_connect/_event_connect/` is the protocol-free core: keys, values, points by their
+  behaviour, the scheduler and subscriptions. It imports nothing outside itself and the standard
+  library, and its tests in `tests/event_connect/` import only it, so it can become a package of
+  its own unchanged. Nothing about the Duka One's protocol goes in it.
 - Facts come from the manufacturers' documents, copied into `docs/models/` with their text
   layer. What is known only from elsewhere is written in this repository's own words, never
   with a reference to another repository.
