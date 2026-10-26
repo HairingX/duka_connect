@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -36,12 +37,19 @@ class _Following:
 
 
 class Scheduler:
-    """The schedule of one device: poll intervals, overrides, pending refreshes, following."""
+    """The schedule of one device: poll intervals, overrides, pending refreshes, following.
+
+    Each key keeps its own rhythm: a read a refresh asked for does not move the next regular one.
+    Whenever something is due, everything due within `coalesce_window` seconds is due with it, so
+    that it can share the request rather than follow in one of its own.
+    """
 
     def __init__(self, clock: Clock, poll_intervals: Mapping[PollRate, float | None] = DEFAULT_INTERVALS,
-                 *, min_poll_interval: float = 0.0) -> None:
+                 *, min_poll_interval: float = 0.0, coalesce_window: float = 0.0) -> None:
         if min_poll_interval < 0:
             raise ValueError(f"min_poll_interval cannot be negative, got {min_poll_interval}")
+        if not (math.isfinite(coalesce_window) and coalesce_window >= 0):
+            raise ValueError(f"coalesce_window must be a finite number >= 0, got {coalesce_window}")
         model_intervals: dict[PollRate, float | None] = {}
         for poll_rate in PollRate:
             default = poll_intervals.get(poll_rate, DEFAULT_INTERVALS[poll_rate])
@@ -56,6 +64,7 @@ class Scheduler:
 
         self._clock = clock
         self._min_poll_interval = min_poll_interval
+        self._coalesce_window = coalesce_window
         self._model_intervals = model_intervals
         self._rate_overrides: dict[PollRate, float] = {}
         self._key_overrides: dict[str, float] = {}
@@ -64,7 +73,8 @@ class Scheduler:
         self._scheduled = True
         self._points: dict[str, Point[Any]] = {}
         self._polled: dict[str, bool] = {}
-        self._last_attempt: dict[str, float] = {}
+        self._last_regular: dict[str, float] = {}
+        """When each key was last read on its own rhythm."""
         self._pending: dict[str, _Pending] = {}
         self._following: dict[str, _Following] = {}
 
@@ -78,7 +88,7 @@ class Scheduler:
         for key in list(self._points):
             if key not in new_points:
                 self._polled.pop(key, None)
-                self._last_attempt.pop(key, None)
+                self._last_regular.pop(key, None)
                 self._key_overrides.pop(key, None)
                 self._pending.pop(key, None)
                 self._following.pop(key, None)
@@ -182,7 +192,7 @@ class Scheduler:
         for key in targets:
             self._require(key)
         for key in targets:
-            self._last_attempt.pop(key, None)
+            self._last_regular.pop(key, None)
             self._pending.pop(key, None)
             self._following.pop(key, None)
 
@@ -193,7 +203,8 @@ class Scheduler:
         advance following."""
         self._require(key)
         now = self._clock.monotonic()
-        self._last_attempt[key] = now
+        if self._regular_due(key) <= now + self._coalesce_window:
+            self._last_regular[key] = now
 
         pending = self._pending.get(key)
         if pending is None or pending.not_before > now:
@@ -208,8 +219,8 @@ class Scheduler:
         following = self._following[key]
         sample = (value.value, value.quality) if success and value is not None else None
         if sample is not None:
-            if sample == following.baseline:
-                del self._following[key]  # settled: two reads in a row agree
+            if following.baseline is not None and _agree(following.baseline, sample, self._points[key].deadband):
+                del self._following[key]
                 return
             following.baseline = sample
         if now < following.deadline:
@@ -220,49 +231,54 @@ class Scheduler:
     # ---------------------------------------------------------------------------------- due
 
     def due(self) -> list[str]:
-        """Keys to read now, in priority order: pending refreshes, never-attempted, most overdue."""
+        """Keys to read now, in priority order: pending refreshes, never-read, most overdue.
+
+        Nothing is due before something is due now; then everything due within the coalesce
+        window is due with it.
+        """
         now = self._clock.monotonic()
+        regular = self._regular_times()
+        earliest = min([*regular.values(), *(pending.not_before for pending in self._pending.values())],
+                       default=math.inf)
+        if earliest > now:
+            return []
+        horizon = now + self._coalesce_window
         order = {key: index for index, key in enumerate(self._points)}
 
-        ready = sorted((key for key, pending in self._pending.items() if pending.not_before <= now),
+        ready = sorted((key for key, pending in self._pending.items() if pending.not_before <= horizon),
                        key=lambda key: (self._pending[key].not_before, order[key]))
-        if not self._scheduled:
-            return ready
         seen = set(ready)
-
-        never: list[str] = []
-        overdue: list[str] = []
-        overdue_by: dict[str, float] = {}
-        for key in self._points:
-            if key in seen or not self._polled.get(key, False):
-                continue
-            last = self._last_attempt.get(key)
-            if last is None:
-                never.append(key)
-                continue
-            interval = self.interval(key)
-            if interval is not None and now - last >= interval:
-                overdue.append(key)
-                overdue_by[key] = now - last - interval
-        overdue.sort(key=lambda key: (-overdue_by[key], order[key]))
-
+        never = [key for key, due in regular.items() if key not in seen and due == -math.inf]
+        overdue = sorted((key for key, due in regular.items() if key not in seen and -math.inf < due <= horizon),
+                         key=lambda key: (regular[key], order[key]))
         return ready + never + overdue
 
     def next_due(self) -> float | None:
         """The monotonic time `due()` would next return something; `None` if nothing ever will."""
         now = self._clock.monotonic()
-        candidates: list[float] = [pending.not_before for pending in self._pending.values()]
-        for key, polled in self._polled.items():
-            if not polled or not self._scheduled:
-                continue
-            last = self._last_attempt.get(key)
-            if last is None:
-                candidates.append(now)
-                continue
-            interval = self.interval(key)
-            if interval is not None:
-                candidates.append(last + interval)
+        candidates = [pending.not_before for pending in self._pending.values()]
+        candidates += [max(due, now) for due in self._regular_times().values()]
         return min(candidates) if candidates else None
+
+    def _regular_times(self) -> dict[str, float]:
+        """When each polled key is next due on its own rhythm: -inf if never read; keys that never
+        will be are left out."""
+        if not self._scheduled:
+            return {}
+        times: dict[str, float] = {}
+        for key in self._points:
+            if self._polled.get(key, False):
+                due = self._regular_due(key)
+                if due < math.inf:
+                    times[key] = due
+        return times
+
+    def _regular_due(self, key: str) -> float:
+        last = self._last_regular.get(key)
+        if last is None:
+            return -math.inf
+        interval = self.interval(key)
+        return math.inf if interval is None else last + interval
 
     # -------------------------------------------------------------------------------- internal
 
@@ -281,3 +297,15 @@ def _merge(existing: _Pending | None, incoming: _Pending) -> _Pending:
     if existing.follow_deadline is None or incoming.follow_deadline >= existing.follow_deadline:
         return _Pending(not_before, incoming.after, incoming.follow_deadline)
     return _Pending(not_before, existing.after, existing.follow_deadline)
+
+
+def _agree(before: tuple[Value, Quality], after: tuple[Value, Quality], deadband: float | None) -> bool:
+    """Whether two reads in a row agree: the same quality, and values no further apart than the
+    deadband, or equal."""
+    if before[1] is not after[1]:
+        return False
+    old, new = before[0], after[0]
+    if deadband is not None and isinstance(old, (int, float)) and isinstance(new, (int, float)) \
+            and not isinstance(old, bool) and not isinstance(new, bool):
+        return abs(new - old) <= deadband
+    return old == new

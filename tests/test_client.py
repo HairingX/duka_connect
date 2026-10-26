@@ -7,6 +7,7 @@ import pytest
 from conftest import make_client
 from duka_connect import (
     DUKA_ONE,
+    DUKA_ONE_TIMING,
     AlarmLevel,
     CannotConnectError,
     Client,
@@ -20,6 +21,7 @@ from duka_connect import (
     ReadOnlyError,
     Speed,
     Status,
+    Timing,
     UnsupportedDeviceError,
     VentilationMode,
     Write,
@@ -510,4 +512,28 @@ def test_every_point_read_again_is_a_point_with_a_value() -> None:
 def test_every_command_waits_before_what_it_changed_is_read() -> None:
     for point in DUKA_ONE:
         if point.write_kind is WriteKind.COMMAND:
-            assert point.read_back_after and point.on_write is not None, point.key
+            assert point.on_write is not None and DUKA_ONE_TIMING.read_back_delay(point) > 0, point.key
+
+
+async def test_reads_due_close_together_share_one_request(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    watch(client, PointKey.FAN_RPM, PointKey.FAN2_RPM, PointKey.POWER, PointKey.VENTILATION_MODE)
+    clock.advance(5)
+    await client.write(PointKey.SPEED, Speed.HIGH)
+    unit.requests.clear()
+    clock.advance(3)
+    await client.poll()
+    assert [sorted(numbers) for _, numbers in unit.requests] == [[0x01, 0x4A, 0x4B, 0xB7]]
+
+
+async def test_a_client_can_be_given_its_own_timing(unit: SimulatedDuka, clock: FakeClock) -> None:
+    client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
+                    clock=clock, timing=Timing(poll_intervals={PollRate.FAST: 5.0}, coalesce_window=0.0))
+    await client.connect()
+    watch(client, PointKey.POWER)
+    unit.requests.clear()
+    clock.advance(5)
+    await client.poll()
+    assert read(unit) == [0x01]
+    await client.disconnect()

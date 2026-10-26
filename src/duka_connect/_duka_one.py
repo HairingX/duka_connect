@@ -2,7 +2,7 @@
 from datetime import date, time
 from typing import Any
 
-from ._event_connect import Key, Limits, PollRate, Refresh, Unit, WriteKind
+from ._event_connect import Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
 from ._points import (
     Point,
     command_encoder,
@@ -83,9 +83,10 @@ _FANS = (PointKey.FAN_RPM, PointKey.FAN2_RPM)
 _FANS_SETTLE = Refresh(_FANS, after=3.0, until_stable=30.0)
 """The fans' speeds, read until they settle: a fan takes some seconds to reach a new speed."""
 
-_COMMAND_TAKEN = 1.0
-"""Seconds before what a command changed is read: the unit does not answer a command, so nothing
-says when it has carried it out."""
+DUKA_ONE_TIMING = Timing(read_back_after=1.0, coalesce_window=2.0)
+"""How a Duka One is read: the default poll intervals; what a command changed is read a second
+after it is sent, as the unit does not answer a command, so nothing says when it has carried it
+out; and reads due within two seconds of each other share one request."""
 
 
 def _whole(minimum: int, maximum: int) -> Limits:
@@ -123,6 +124,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     ),
     Point(
         PointKey.RTC_BATTERY_VOLTAGE, 0x24, 2, decode_int, poll_rate=PollRate.RARE, unit=Unit.MILLIVOLT,
+        deadband=10,
     ),
     Point(
         PointKey.HUMIDITY, 0x25, 1, decode_int, unit=Unit.PERCENT,
@@ -132,14 +134,14 @@ DUKA_ONE: tuple[Point[Any], ...] = (
         PointKey.MANUAL_SPEED, 0x44, 1, decode_int, int_encoder(1), poll_rate=PollRate.FAST,
         limits=_whole(0, 255), on_change=_FANS_SETTLE,
     ),
-    Point(PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM),
+    Point(PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
     Point(
         PointKey.FILTER_TIMER, 0x64, 3, decode_minutes_hours_days, poll_rate=PollRate.RARE,
         unit=Unit.MINUTES,
     ),
     Point(
         PointKey.RESET_FILTER_TIMER, 0x65, 1, None, command_encoder(b"\x00"),
-        write_kind=WriteKind.COMMAND, read_back_after=_COMMAND_TAKEN,
+        write_kind=WriteKind.COMMAND,
         on_write=Refresh((PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE, PointKey.ALARM)),
     ),
     Point(
@@ -152,7 +154,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     ),
     Point(
         PointKey.RESET_ALARMS, 0x80, 1, None, command_encoder(b"\x00"),
-        write_kind=WriteKind.COMMAND, read_back_after=_COMMAND_TAKEN,
+        write_kind=WriteKind.COMMAND,
         on_write=Refresh((PointKey.ALARM, PointKey.FILTER_REPLACE)),
     ),
     Point(
@@ -194,7 +196,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
             (PointKey.EXHAUST_SPEED_3, 0x3F),
         )
     ),
-    Point(PointKey.FAN2_RPM, 0x4B, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM),
+    Point(PointKey.FAN2_RPM, 0x4B, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
     Point(
         PointKey.FILTER_INTERVAL, 0x63, 2, decode_int, int_encoder(2), poll_rate=PollRate.RARE,
         unit=Unit.DAYS, limits=_whole(70, 365),
@@ -212,7 +214,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     ),
     Point(
         PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, None, command_encoder(b"\x01"),
-        write_kind=WriteKind.COMMAND, read_back_after=_COMMAND_TAKEN,
+        write_kind=WriteKind.COMMAND,
         on_write=Refresh((
             PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
             PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,

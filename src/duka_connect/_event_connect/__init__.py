@@ -38,12 +38,14 @@ from ._point import (
 )
 from ._scheduler import Scheduler
 from ._status import Status, StatusCallback
+from ._timing import DEFAULT_TIMING, Timing
 from ._unit import Unit
 from ._value import DataValue, Quality, Value, stale
 from ._writes import Write
 
 __all__ = [
     "DEFAULT_INTERVALS",
+    "DEFAULT_TIMING",
     "VALUE_TYPES",
     "AuthenticationError",
     "CannotConnectError",
@@ -71,6 +73,7 @@ __all__ = [
     "Subscriber",
     "Subscriptions",
     "SystemClock",
+    "Timing",
     "Transform",
     "Transforms",
     "Unit",

@@ -114,7 +114,7 @@ def test_a_fake_clock_moves_both_clocks_only_when_told() -> None:
 
 def test_the_core_imports_nothing_outside_itself_but_the_standard_library() -> None:
     root = Path(core.__file__).parent
-    allowed = {"__future__", "collections", "dataclasses", "datetime", "enum", "logging", "math", "time",
+    allowed = {"__future__", "collections", "dataclasses", "datetime", "enum", "logging", "math", "statistics", "time",
                "types", "typing"}
     for path in root.rglob("*.py"):
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
