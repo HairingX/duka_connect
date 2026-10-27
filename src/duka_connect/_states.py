@@ -23,11 +23,13 @@ class VentilationMode(IntEnum):
 
 
 class TimerMode(IntEnum):
-    """Which timed mode runs."""
+    """Which timed mode runs; when its time is up, the unit runs as it did before."""
 
     OFF = 0
     NIGHT = 1
+    """The lowest speed, quiet, for as long as the night timer is set to."""
     PARTY = 2
+    """The highest speed, to air out, for as long as the party timer is set to."""
 
 
 class AlarmLevel(IntEnum):

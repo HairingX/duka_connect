@@ -109,6 +109,11 @@ ventilation is balanced (DUKA One Pro 50 S Wi-Fi user manual, pages 12 and 14). 
 alternates, 70 seconds in and 70 seconds out, through the ceramic heat exchanger. Supply only
 brings air in.
 
+**Timer modes.** Night runs the unit at speed I, party at speed III, for as long as their timers
+`0302` and `0303` are set to; then it goes back to how it ran before, and a press of any of its
+buttons ends the mode at once. Duka's manual gives 8 hours of night and 4 of party, and the app
+sets both (DUKA One Pro 50 S Wi-Fi user manual, pages 15 and 20).
+
 The guide gives the separate fan speeds `3A`-`3F`, the filter interval `63` and the restore
 command `012A` for some models only; a unit without them answers `FD`, and they are `MISSING`.
 
