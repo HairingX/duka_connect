@@ -73,8 +73,8 @@ class PointKey:
     WEEKLY_SCHEDULE = Key("weekly_schedule", bool)
     CLOUD_ENABLED = Key("cloud_enabled", bool)
     IP_ADDRESS = Key("ip_address", str)
-    NIGHT_TIMER = Key("night_timer", int)
-    PARTY_TIMER = Key("party_timer", int)
+    REDUCED_DURATION = Key("reduced_duration", int)
+    BOOST_DURATION = Key("boost_duration", int)
     RESTORE_FAN_SPEEDS = Key("restore_fan_speeds", bool)
 
 
@@ -227,7 +227,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
             key, parameter, 2, decode_minutes_hours, encode_minutes_hours, poll_rate=PollRate.SLOW,
             unit=Unit.MINUTES, limits=_whole(0, 23 * 60 + 59),
         )
-        for key, parameter in ((PointKey.NIGHT_TIMER, 0x0302), (PointKey.PARTY_TIMER, 0x0303))
+        for key, parameter in ((PointKey.REDUCED_DURATION, 0x0302), (PointKey.BOOST_DURATION, 0x0303))
     ),
     Point(PointKey.HUMIDITY_OVER_THRESHOLD, 0x0304, 1, decode_bool),
     Point(PointKey.ANALOG_SENSOR_OVER_THRESHOLD, 0x0305, 1, decode_bool),

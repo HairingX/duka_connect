@@ -37,7 +37,7 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `power` | `01` | 1 | 0 off, 1 on | yes |
 | `speed` | `02` | 1 | 1, 2 or 3, or 255 for the manual speed | yes |
 | `boost` | `06` | 1 | boost runs | |
-| `timer_mode` | `07` | 1 | 0 off, 1 night, 2 party | yes |
+| `timer_mode` | `07` | 1 | 0 off, 1 reduced, 2 boost | yes |
 | `timer_countdown` | `0B` | 3 | seconds, minutes, hours left of the timer | |
 | `humidity_sensor_enabled` | `0F` | 1 | the humidity sensor may start boost | yes |
 | `humidity_threshold` | `19` | 1 | %RH that starts boost, 40 to 80 | yes |
@@ -69,7 +69,7 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `ip_address` | `A3` | 4 | the unit's current IP address, its numbers in order | |
 | `analog_sensor_threshold` | `B8` | 1 | the 0-10 V signal that starts boost, 5 to 100 % | yes |
 | `restore_fan_speeds` | `012A` | 1 | command: the fan speeds of every speed back to the factory's, by the value 1 | command |
-| `night_timer`, `party_timer` | `0302`, `0303` | 2 each | how long the night and party modes run: minutes, hours | yes |
+| `reduced_duration`, `boost_duration` | `0302`, `0303` | 2 each | how long the reduced and boost timer modes run: minutes, hours | yes |
 | `humidity_over_threshold` | `0304` | 1 | the humidity is over its threshold | |
 | `analog_sensor_over_threshold` | `0305` | 1 | the 0-10 V signal is over its threshold | |
 
@@ -109,10 +109,11 @@ ventilation is balanced (DUKA One Pro 50 S Wi-Fi user manual, pages 12 and 14). 
 alternates, 70 seconds in and 70 seconds out, through the ceramic heat exchanger. Supply only
 brings air in.
 
-**Timer modes.** Night runs the unit at speed I, party at speed III, for as long as their timers
-`0302` and `0303` are set to; then it goes back to how it ran before, and a press of any of its
-buttons ends the mode at once. Duka's manual gives 8 hours of night and 4 of party, and the app
-sets both (DUKA One Pro 50 S Wi-Fi user manual, pages 15 and 20).
+**Timer modes.** Reduced runs the unit at speed I, boost at speed III, for as long as their
+durations `0302` and `0303` are set to; then it goes back to how it ran before, and a press of any
+of its buttons ends the mode at once. The guide and Duka's manual call them night mode and party
+mode; the manual gives 8 hours for the first and 4 for the second, and the app sets both (DUKA One
+Pro 50 S Wi-Fi user manual, pages 15 and 20).
 
 The guide gives the separate fan speeds `3A`-`3F`, the filter interval `63` and the restore
 command `012A` for some models only; a unit without them answers `FD`, and they are `MISSING`.
