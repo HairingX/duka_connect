@@ -71,8 +71,8 @@ async def test_connecting_reads_the_sensors_clock_and_settings(client: Client) -
     assert values_of(client, PointKey.CLOCK_TIME) == time(12, 30, 15)
     assert values_of(client, PointKey.CLOCK_DATE) == date(2026, 10, 26)
     assert values_of(client, PointKey.IP_ADDRESS) == "192.0.2.10"
-    assert values_of(client, PointKey.NIGHT_TIMER) == 8 * 60
-    assert values_of(client, PointKey.PARTY_TIMER) == 4 * 60
+    assert values_of(client, PointKey.REDUCED_DURATION) == 8 * 60
+    assert values_of(client, PointKey.BOOST_DURATION) == 4 * 60
     assert values_of(client, PointKey.FILTER_INTERVAL) == 90
     assert values_of(client, PointKey.SUPPLY_SPEED_3) == 255
     assert values_of(client, PointKey.CLOUD_ENABLED) is True
@@ -380,9 +380,9 @@ async def test_a_year_the_unit_cannot_hold_is_refused(client: Client) -> None:
 async def test_a_timer_on_page_3_is_written_as_minutes_and_hours(
     client: Client, unit: SimulatedDuka
 ) -> None:
-    await client.write(PointKey.NIGHT_TIMER, 9 * 60 + 45)
+    await client.write(PointKey.REDUCED_DURATION, 9 * 60 + 45)
     assert unit.values[0x0302] == bytes([45, 9])
-    assert values_of(client, PointKey.NIGHT_TIMER) == 9 * 60 + 45
+    assert values_of(client, PointKey.REDUCED_DURATION) == 9 * 60 + 45
 
 
 async def test_a_filter_interval_outside_70_to_365_days_is_refused(client: Client) -> None:
