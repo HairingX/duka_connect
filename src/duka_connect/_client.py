@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
 
-from ._duka_one import DUKA_ONE, PointKey
+from ._duka_one import DUKA_ONE, DUKA_ONE_TIMING, PointKey
 from ._event_connect import (
     CannotConnectError,
     Clock,
@@ -14,13 +14,14 @@ from ._event_connect import (
     PollRate,
     Quality,
     ReadOnlyError,
+    Reachability,
     Refresh,
-    Scheduler,
     Selector,
     Status,
     StatusCallback,
     Subscriptions,
     SystemClock,
+    Timing,
     UnsupportedDeviceError,
     ValueCallback,
     Write,
@@ -62,6 +63,7 @@ class Client:
         attempts: int = 3,
         clock: Clock | None = None,
         read_only: bool = False,
+        timing: Timing = DUKA_ONE_TIMING,
     ) -> None:
         """Set up a client; nothing is sent until `connect()`.
 
@@ -69,6 +71,7 @@ class Client:
             timeout: seconds to wait for each answer.
             attempts: how many times a request is sent before the unit counts as not answering.
             read_only: refuse every write.
+            timing: when points are read, and how long a write takes to show.
         """
         self.device_id = device_id
         self._password = password
@@ -84,7 +87,9 @@ class Client:
         self._subscriptions = Subscriptions()
         self._polled_keys: set[str] = set()
         self._scheduled_keys = frozenset(point.key for point in self._readable)
-        self._scheduler = Scheduler(self._clock)
+        self._timing = timing
+        self._reachability = Reachability(self._clock, timing.offline_after)
+        self._scheduler = timing.scheduler(self._clock)
         self._scheduler.set_points(self._readable)
         self._status: dict[Status, DataValue[bool]] = {
             status: DataValue(False, Quality.GOOD, self._clock.now()) for status in Status
@@ -151,8 +156,23 @@ class Client:
         return {self._points[key].key: value for key, value in self._values.items()}
 
     def status(self, status: Status) -> DataValue[bool]:
-        """What the client knows of `status` now."""
+        """What the client knows of `status` now.
+
+        `Status.CONNECTED` turns false only once the unit has been silent for the timing's
+        `offline_after`; `silent_for` says how long it has been so far.
+        """
         return self._status[status]
+
+    @property
+    def silent(self) -> bool:
+        """Whether the unit left the latest request unanswered."""
+        return self._reachability.silent
+
+    @property
+    def silent_for(self) -> float:
+        """Seconds since the unit first left a request unanswered since its last answer; 0 while
+        it answers."""
+        return self._reachability.silent_for
 
     # ============================================================================== interest
 
@@ -381,8 +401,7 @@ class Client:
         effect = point.on_write
         if effect is None:
             return
-        after = effect.after if effect.after is not None else point.read_back_after or 0.0
-        self._schedule(effect, after)
+        self._schedule(effect, self._timing.read_back_delay(point))
 
     def _writable_point(self, key: Key[Any]) -> Point[Any]:
         if self._read_only:
@@ -401,11 +420,11 @@ class Client:
                 packet, self.device_id, self._sizes, self._timeout, self._attempts
             )
         except TimeoutError:
-            if self._status[Status.CONNECTED].value:
-                _LOGGER.debug("%s stopped answering", self.host)
-            self._set_status(Status.CONNECTED, False)
+            reachable = self._reachability.unanswered()
+            _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
+            self._set_status(Status.CONNECTED, reachable)
             return None
-        self._set_status(Status.CONNECTED, True)
+        self._set_status(Status.CONNECTED, self._reachability.answered())
         return response.values
 
     def _set_status(self, status: Status, value: bool) -> None:

@@ -76,6 +76,14 @@ says so. When the alarm clears, the battery and filter are read 10 seconds later
 10 seconds while they change, for up to 2 minutes; a new speed has the fans read 3 seconds later,
 until they settle. What is read again is what is subscribed to. `docs/protocol.md` lists every one.
 
+One request is sent at a time, and whatever is due when the unit is free goes out together. A
+read asked for after a change does not move a point's own rhythm, so points read together stay
+together. A read the unit does not answer is tried again a second later, then 2, 4 and 8 seconds
+later, never later than its next turn; its value meanwhile is the last good one, `STALE`. The
+unit counts as not answering - `Status.CONNECTED` false - only after half a minute without an
+answer, so one lost packet does not make it unavailable. A different `Timing` can be given to
+`Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
+
 `client.status(Status.CONNECTED)` says whether the unit answers, and
 `subscribe_status(Status.CONNECTED, callback)` tells every change.
 
@@ -100,6 +108,23 @@ is sent; a point that cannot be written raises `ValueError`.
 |---|---|
 | `CannotConnectError` | The unit did not answer. A unit does not answer a wrong device id or password either. |
 | `UnsupportedDeviceError` | The unit answered, but not as a Duka One does. |
+
+## Measuring your unit
+
+The waits after a change are first estimates, not yet measured on a Duka One.
+`duka_connect.testing` measures them on yours:
+
+```python
+from duka_connect.testing import measure_fan_settling, measure_latency, recommended_refresh
+
+print(await measure_latency(client))               # how long the unit takes to answer
+settlings = await measure_fan_settling(client)       # low to high and back; changes the speed
+for settling in settlings:
+    print(settling)
+print(recommended_refresh(settlings, every=0.5))     # an `after` and an `until_stable` for the fans
+```
+
+`measure_fan_settling` changes the unit's speed while it runs, and sets it back afterwards.
 
 ## Trying it on your unit
 

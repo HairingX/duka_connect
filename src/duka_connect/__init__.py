@@ -7,7 +7,7 @@ from importlib.metadata import version as _installed_version
 
 from ._client import DEFAULT_PASSWORD, Client
 from ._discovery import DiscoveredDevice, discover
-from ._duka_one import DUKA_ONE, PointKey
+from ._duka_one import DUKA_ONE, DUKA_ONE_TIMING, PointKey
 from ._event_connect import (
     CannotConnectError,
     Certainty,
@@ -27,6 +27,7 @@ from ._event_connect import (
     Status,
     StatusCallback,
     SystemClock,
+    Timing,
     Unit,
     UnsupportedDeviceError,
     ValueCallback,
@@ -41,6 +42,7 @@ __version__ = _installed_version("duka_connect")
 __all__ = [
     "DEFAULT_PASSWORD",
     "DUKA_ONE",
+    "DUKA_ONE_TIMING",
     "PORT",
     "AlarmLevel",
     "CannotConnectError",
@@ -68,6 +70,7 @@ __all__ = [
     "StatusCallback",
     "SystemClock",
     "TimerMode",
+    "Timing",
     "Unit",
     "UnsupportedDeviceError",
     "ValueCallback",

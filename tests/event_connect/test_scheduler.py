@@ -415,9 +415,9 @@ def test_following_window_expiring_stops_it() -> None:
     assert scheduler.due() == ["a"]                    # the already-scheduled read still happens
     scheduler.record("a", _dv(3), success=True)        # changed again, but time is up: no more
 
-    clock.advance(999.0)                              # t=1014: just short of the FAST interval
+    clock.advance(989.0)                              # t=1004: just short of the FAST interval
     assert scheduler.due() == []                       # only the poll rate's schedule can bring it back now
-    clock.advance(1.0)                                # t=1015 = last attempt (15) + FAST (1000)
+    clock.advance(1.0)                                # t=1005 = first read (5) + FAST (1000)
     assert scheduler.due() == ["a"]
 
 
@@ -445,7 +445,7 @@ def test_following_failed_read_reschedules_and_keeps_baseline() -> None:
     assert scheduler.due() == []
 
 
-def test_following_falls_back_to_regular_schedule_afterwards() -> None:
+def test_following_leaves_the_regular_rhythm_where_it_was() -> None:
     clock = FakeClock()
     scheduler = Scheduler(clock, poll_intervals={PollRate.FAST: 10.0})
     scheduler.set_points([_point("a", PollRate.FAST)])
@@ -457,9 +457,9 @@ def test_following_falls_back_to_regular_schedule_afterwards() -> None:
     assert scheduler.due() == ["a"]
     scheduler.record("a", _dv(99), success=True)  # only read in the following; window closes now
 
-    clock.advance(9.99)  # 9.99s since the last attempt (t=1001): still short of the FAST interval
+    clock.advance(8.99)  # 9.99s since the regular read at t=0
     assert scheduler.due() == []
-    clock.advance(0.01)  # 10.0s since the last attempt
+    clock.advance(0.01)  # 10.0s since it, however recent the extra read
     assert scheduler.due() == ["a"]
 
 
@@ -484,9 +484,9 @@ def test_a_write_effect_is_followed_while_it_ramps_and_stops_when_two_reads_agre
         due = _tick(scheduler, clock, offset, {key: (ramp[key][tick], True) for key in affected})
         assert set(due) == set(affected)
 
-    clock.advance(4.0)  # t=10: both values were stable at t=4 and t=6, so no follow read at t=8
-    assert scheduler.due() == []  # only the FAST interval (10s from the t=6 read) applies
-    clock.advance(6.0)  # t=16 = 6s attempt + 10s FAST interval
+    clock.advance(1.99)  # t=7.99: both values were stable at t=4 and t=6, so no follow read at t=8
+    assert scheduler.due() == []
+    clock.advance(2.01)  # t=10: the FAST rhythm, from the regular read at t=0, goes on
     assert set(scheduler.due()) == set(affected)
 
 
@@ -656,3 +656,144 @@ def test_next_due_unaffected_by_a_wall_clock_jump() -> None:
 
     assert scheduler.next_due() == before
     assert scheduler.due() == before_due
+
+
+# ============================================================================== rhythm
+
+
+def test_a_refresh_read_does_not_move_the_regular_rhythm() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.FAST: 10.0})
+    scheduler.set_points([_point("rpm", PollRate.FAST), _point("power", PollRate.FAST)])
+    _activate(scheduler, "rpm", "power")
+    for key in ("rpm", "power"):
+        scheduler.record(key, _dv(1), success=True)
+    clock.advance(5.0)
+    scheduler.refresh(["rpm"], after=0.0)
+    assert _tick(scheduler, clock, 0.0, {"rpm": (2, True)}) == ["rpm"]
+    assert _tick(scheduler, clock, 5.0, {"rpm": (2, True), "power": (1, True)}) == ["rpm", "power"]
+
+
+def test_keys_read_together_stay_together_after_a_refresh_of_one() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.FAST: 10.0})
+    keys = ("rpm", "power", "speed")
+    scheduler.set_points([_point(key, PollRate.FAST) for key in keys])
+    _activate(scheduler, *keys)
+    for key in keys:
+        scheduler.record(key, _dv(1), success=True)
+    clock.advance(5.0)
+    scheduler.refresh(["rpm"], after=3.0, until_stable=30.0)
+    groups: list[list[str]] = []
+    values = iter([1800, 2200, 2200, 2200, 2200, 2200, 2200])
+    for _ in range(40):
+        clock.advance(1.0)
+        due = scheduler.due()
+        for key in due:
+            scheduler.record(key, _dv(next(values) if key == "rpm" else 1), success=True)
+        if due:
+            groups.append(sorted(due))
+    assert groups[-2:] == [sorted(keys), sorted(keys)]
+
+
+def test_reads_within_the_deadband_agree_and_end_the_following() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock)
+    scheduler.set_points([FakePoint(Key("rpm", int), poll_rate=PollRate.FAST, deadband=20)])
+    _activate(scheduler, "rpm")
+    scheduler.record("rpm", _dv(1250), success=True)
+    scheduler.refresh(["rpm"], after=3.0, until_stable=30.0)
+    assert _tick(scheduler, clock, 3.0, {"rpm": (2190, True)}) == ["rpm"]
+    assert _tick(scheduler, clock, 3.0, {"rpm": (2205, True)}) == ["rpm"]
+    assert _tick(scheduler, clock, 3.0, {"rpm": (2200, True)}) == []
+
+
+def test_reads_outside_the_deadband_go_on_being_followed() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock)
+    scheduler.set_points([FakePoint(Key("rpm", int), poll_rate=PollRate.FAST, deadband=20)])
+    _activate(scheduler, "rpm")
+    scheduler.record("rpm", _dv(1250), success=True)
+    scheduler.refresh(["rpm"], after=3.0, until_stable=30.0)
+    for rpm in (1800, 2100, 2200):
+        assert _tick(scheduler, clock, 3.0, {"rpm": (rpm, True)}) == ["rpm"]
+
+
+# ============================================================================== retries
+
+
+def test_a_retry_wait_must_be_a_finite_number_of_seconds() -> None:
+    for seconds in (-1.0, float("inf"), float("nan")):
+        with pytest.raises(ValueError):
+            Scheduler(FakeClock(), retry_after=seconds)
+
+
+def test_a_failed_read_is_tried_again_soon_and_later_at_each_failure() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.RARE: 900.0}, retry_after=1.0)
+    scheduler.set_points([_point("battery", PollRate.RARE)])
+    _activate(scheduler, "battery")
+    scheduler.record("battery", None, success=False)
+    retried: list[float] = []
+    start = clock.monotonic()
+    for _ in range(16):
+        clock.advance(1.0)
+        if scheduler.due() == ["battery"]:
+            retried.append(clock.monotonic() - start)
+            scheduler.record("battery", None, success=False)
+    assert retried == [1.0, 3.0, 7.0, 15.0]
+    assert scheduler.consecutive_failures("battery") == 5
+
+
+def test_a_retry_never_waits_longer_than_the_key_s_interval() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.FAST: 10.0}, retry_after=8.0)
+    scheduler.set_points([_point("a", PollRate.FAST)])
+    _activate(scheduler, "a")
+    scheduler.record("a", None, success=False)
+    scheduler.record("a", None, success=False)
+    assert scheduler.next_due() == clock.monotonic() + 10.0
+
+
+def test_a_success_ends_the_retries_and_the_count() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.RARE: 900.0}, retry_after=1.0)
+    scheduler.set_points([_point("a", PollRate.RARE)])
+    _activate(scheduler, "a")
+    scheduler.record("a", None, success=False)
+    clock.advance(1.0)
+    assert scheduler.due() == ["a"]
+    scheduler.record("a", _dv(1), success=True)
+    assert scheduler.consecutive_failures("a") == 0
+    clock.advance(10.0)
+    assert scheduler.due() == []
+
+
+def test_a_retry_does_not_move_the_regular_rhythm() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.FAST: 10.0}, retry_after=1.0)
+    scheduler.set_points([_point("a", PollRate.FAST)])
+    _activate(scheduler, "a")
+    scheduler.record("a", None, success=False)
+    assert _tick(scheduler, clock, 1.0, {"a": (1, True)}) == ["a"]
+    assert _tick(scheduler, clock, 8.0, {}) == []
+    assert _tick(scheduler, clock, 1.0, {"a": (1, True)}) == ["a"]
+
+
+def test_without_a_retry_wait_a_failed_read_waits_for_its_next_turn() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, poll_intervals={PollRate.FAST: 10.0})
+    scheduler.set_points([_point("a", PollRate.FAST)])
+    _activate(scheduler, "a")
+    scheduler.record("a", None, success=False)
+    clock.advance(9.0)
+    assert scheduler.due() == []
+
+
+def test_a_key_nobody_polls_is_not_retried() -> None:
+    clock = FakeClock()
+    scheduler = Scheduler(clock, retry_after=1.0)
+    scheduler.set_points([_point("a")])
+    scheduler.record("a", None, success=False)
+    clock.advance(1.0)
+    assert scheduler.due() == []
