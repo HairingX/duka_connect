@@ -3,8 +3,8 @@
 The unit answers UDP on port 4000. This page sets out the packet format and every point the
 library reads, as the manufacturer's connection guide describes them:
 `docs/models/protocol/vento-smart-home-connection-guide.pdf`, with its parameter table in
-`docs/models/protocol/parameters.csv`. No point has been read on a Duka One by this library yet,
-so every point is `Certainty.REPORTED`.
+`docs/models/protocol/parameters.csv`. A point read on a Duka One by this library is
+`Certainty.VERIFIED`, and says so below; every other is `Certainty.REPORTED`.
 
 ## Packets
 
@@ -41,7 +41,7 @@ A unit does not answer a wrong password, nor a write with function 02.
 | `timer_countdown` | `0B` | 3 | seconds, minutes, hours left of the timer | |
 | `humidity_sensor_enabled` | `0F` | 1 | the humidity sensor may start boost | yes |
 | `humidity_threshold` | `19` | 1 | %RH that starts boost, 40 to 80 | yes |
-| `rtc_battery_voltage` | `24` | 2 | the clock's battery, 0 to 5000 mV | |
+| `rtc_battery_voltage` | `24` | 2 | the clock's battery, 0 to 5000 mV; verified: a flat CR1220 read 90 mV, a new one 3330 mV | |
 | `humidity` | `25` | 1 | %RH | |
 | `manual_speed` | `44` | 1 | 0 to 255, used while `speed` is 255 | yes |
 | `fan_rpm` | `4A` | 2 | the fan's speed, 0 to 5000 rpm | |
@@ -129,6 +129,7 @@ only.
   own units, none of them a Duka One. `connect()` accepts any unit that reports a unit type;
   the live test prints it, and once known, other units can be refused as unsupported.
 - **The battery voltage at which the app reports a flat battery.** Duka's app reports a CR1220
-  to replace; `rtc_battery_voltage` is the likely source, but no document gives the threshold.
+  to replace; `rtc_battery_voltage` read 90 mV while it did, and a new cell 3330 mV, but no
+  document gives the threshold in between.
 - **Which parameters a Duka One has.** The guide's table is for Blauberg's VENTO units; a unit
   without a parameter answers `FD`, and the point is `MISSING`.

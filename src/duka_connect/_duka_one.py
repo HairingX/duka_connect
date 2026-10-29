@@ -2,7 +2,7 @@
 from datetime import date, time
 from typing import Any
 
-from ._event_connect import Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
+from ._event_connect import Certainty, Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
 from ._points import (
     Point,
     command_encoder,
@@ -125,7 +125,7 @@ DUKA_ONE: tuple[Point[Any], ...] = (
     ),
     Point(
         PointKey.RTC_BATTERY_VOLTAGE, 0x24, 2, decode_int, poll_rate=PollRate.RARE, unit=Unit.MILLIVOLT,
-        deadband=10,
+        deadband=10, certainty=Certainty.VERIFIED,
     ),
     Point(
         PointKey.HUMIDITY, 0x25, 1, decode_int, unit=Unit.PERCENT,
