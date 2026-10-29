@@ -10,10 +10,10 @@ You subscribe to the values you care about and are told when one changes - with 
 
 | Unit | Status |
 |---|---|
-| Duka One (S6W, 50+) | Untested: every point is from the manufacturer's connection guide, none read by this library yet |
+| Duka One (S6W, 50+) | Points are from the manufacturer's connection guide; the clock battery's voltage has been read on a unit, the rest not yet |
 
-**Every point is taken from the manufacturer's connection guide for the protocol, and has not
-been tested on a unit.** `point.certainty` says so: `REPORTED` until a point has been read
+**Every point is taken from the manufacturer's connection guide for the protocol, and most have
+not been tested on a unit.** `point.certainty` says so: `REPORTED` until a point has been read
 on a Duka One, `VERIFIED` after. Values may be wrong or missing; reports of what a unit shows are
 welcome. What each point is: [docs/protocol.md](https://github.com/HairingX/duka_connect/blob/main/docs/protocol.md); the manufacturer's documents
 themselves: [docs/models](https://github.com/HairingX/duka_connect/blob/main/docs/models/README.md).
