@@ -8,7 +8,7 @@ from importlib.metadata import version as _installed_version
 from ._client import DEFAULT_PASSWORD, Client
 from ._discovery import DiscoveredDevice, discover
 from ._duka_one import DUKA_ONE, DUKA_ONE_TIMING, PointKey
-from ._event_connect import (
+from event_connect import (
     CannotConnectError,
     Certainty,
     Change,

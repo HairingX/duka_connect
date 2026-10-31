@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import Iterable, Mapping
 
 from ._duka_one import DUKA_ONE
-from ._event_connect.testing import FakeClock, Latency, Settling, recommended_refresh
+from event_connect.testing import FakeClock, Latency, Settling, recommended_refresh
 from ._measure import measure_fan_settling, measure_latency
 from ._protocol import (
     SEARCH_DEVICE_ID,

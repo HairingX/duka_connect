@@ -2,7 +2,7 @@
 from datetime import date, time
 from typing import Any
 
-from ._event_connect import Certainty, Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
+from event_connect import Certainty, Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
 from ._points import (
     Point,
     command_encoder,

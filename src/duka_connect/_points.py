@@ -4,8 +4,8 @@ from dataclasses import KW_ONLY, dataclass
 from datetime import date, time
 from enum import IntEnum
 
-from ._event_connect import Certainty, InvalidValueError, is_instance
-from ._event_connect import Point as BasePoint
+from event_connect import Certainty, InvalidValueError, is_instance
+from event_connect import Point as BasePoint
 
 
 class Undecodable(Exception):

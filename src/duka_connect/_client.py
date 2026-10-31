@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
 
 from ._duka_one import DUKA_ONE, DUKA_ONE_TIMING, PointKey
-from ._event_connect import (
+from event_connect import (
     CannotConnectError,
     Clock,
     DataValue,
