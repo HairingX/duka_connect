@@ -25,7 +25,7 @@ pip install duka-connect
 ```
 
 Everything you use comes from `duka_connect`; a simulated unit for your own tests is in
-`duka_connect.testing`. The library has no dependencies.
+`duka_connect.testing`. It depends only on `event_connect`, the protocol-free core it is built on.
 
 ## Usage
 

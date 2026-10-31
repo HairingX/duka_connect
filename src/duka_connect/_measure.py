@@ -5,8 +5,8 @@ from collections.abc import Awaitable, Callable
 
 from ._client import Client
 from ._duka_one import PointKey
-from ._event_connect import CannotConnectError, Clock, Quality, SystemClock
-from ._event_connect.testing import Latency, Settling
+from event_connect import CannotConnectError, Clock, Quality, SystemClock
+from event_connect.testing import Latency, Settling
 from ._states import Speed
 
 _AGREEING = 3

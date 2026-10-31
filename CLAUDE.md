@@ -48,10 +48,10 @@ obvious from the name - one or two lines, no narrative.
 - A point is `Certainty.REPORTED` until it has been read on a Duka One.
 - A point that changes another names it in a `Refresh`, `on_change` or `on_write`, so the other
   is read soon rather than at its own, perhaps rarer, poll; `docs/protocol.md` lists them.
-- `src/duka_connect/_event_connect/` is the protocol-free core: keys, values, points by their
-  behaviour, the scheduler and subscriptions. It imports nothing outside itself and the standard
-  library, and its tests in `tests/event_connect/` import only it, so it can become a package of
-  its own unchanged. Nothing about the Duka One's protocol goes in it.
+- What a device described by its points has in common - keys, values, points by their behaviour,
+  the scheduler, subscriptions, reachability and timing - comes from `event_connect`, and is
+  re-exported here under the same names. This package holds only what is the Duka One's: its
+  protocol, its points and its client. It requires a range of `event_connect`, never one version.
 - Facts come from the manufacturers' documents, copied into `docs/models/` with their text
   layer. What is known only from elsewhere is written in this repository's own words, never
   with a reference to another repository.
