@@ -1,5 +1,6 @@
 """The client against a simulated Duka One."""
 import asyncio
+import logging
 from datetime import date, time
 from typing import Any
 
@@ -664,3 +665,19 @@ async def test_a_cancelled_probe_lets_the_next_one_through(
     await client.refresh([PointKey.HUMIDITY])
     value = client.value(PointKey.HUMIDITY)
     assert value is not None and value.quality is Quality.GOOD
+
+
+async def test_an_outage_and_its_end_are_logged_once_each(
+    client: Client, unit: SimulatedDuka, clock: FakeClock, caplog: pytest.LogCaptureFixture
+) -> None:
+    watch(client, PointKey.HUMIDITY)
+    unit.answering = False
+    with caplog.at_level(logging.INFO, logger="duka_connect"):
+        for _ in range(4):
+            clock.advance(30)
+            await client.poll()
+        unit.answering = True
+        clock.advance(30)
+        await client.poll()
+    said = [r.getMessage() for r in caplog.records if r.levelno >= logging.INFO]
+    assert said == ["The Duka One stopped answering 30 s ago", "The Duka One answers again, after 120 s"]

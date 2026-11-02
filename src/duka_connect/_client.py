@@ -445,15 +445,20 @@ class Client:
         return response.values
 
     def _unanswered(self) -> None:
+        was_reachable = self._status[Status.CONNECTED].value
         reachable = self._reachability.unanswered()
         _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
         self._set_status(Status.CONNECTED, reachable)
+        if was_reachable and not reachable:
+            _LOGGER.info("The Duka One stopped answering %.0f s ago", self._reachability.silent_for)
 
     def _answered(self) -> None:
         was_silent = self._reachability.silent
+        silent_for = self._reachability.silent_for
         was_reachable = self._status[Status.CONNECTED].value
         self._set_status(Status.CONNECTED, self._reachability.answered())
         if not was_reachable and self._connected:
+            _LOGGER.info("The Duka One answers again, after %.0f s", silent_for)
             # It counted as not answering: everything it holds may have changed meanwhile.
             self._scheduler.reset()
         elif was_silent:
