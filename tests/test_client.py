@@ -1,4 +1,6 @@
 """The client against a simulated Duka One."""
+import asyncio
+import logging
 from datetime import date, time
 from typing import Any
 
@@ -242,25 +244,75 @@ async def test_a_single_lost_answer_does_not_count_as_not_answering(
     clock.advance(30)
     await client.poll()
     unit.answering = True
-    clock.advance(1)
+    clock.advance(client.seconds_until_next_poll() or 0.0)
     await client.poll()
     assert connected == [True]
     value = client.value(PointKey.HUMIDITY)
     assert value is not None and value.quality is Quality.GOOD
 
 
-async def test_a_failed_read_is_tried_again_a_second_later(
+async def test_a_failed_read_waits_for_its_next_regular_read_while_the_unit_is_silent(
     client: Client, unit: SimulatedDuka, clock: FakeClock
 ) -> None:
     watch(client, PointKey.RTC_BATTERY_VOLTAGE)
     unit.answering = False
     clock.advance(900)
     await client.poll()
-    unit.answering = True
     unit.requests.clear()
     clock.advance(1)
     await client.poll()
-    assert read(unit) == [0x24]
+    assert read(unit) == []
+
+
+async def test_what_failed_while_the_unit_was_silent_is_read_as_soon_as_it_answers_again(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    watch(client, PointKey.HUMIDITY, PointKey.RTC_BATTERY_VOLTAGE)
+    unit.answering = False
+    clock.advance(900)
+    await client.poll()
+    unit.answering = True
+    clock.advance(client.seconds_until_next_poll() or 0.0)
+    await client.poll()
+    unit.requests.clear()
+    assert client.seconds_until_next_poll() == 0.0
+    await client.poll()
+    assert 0x24 in read(unit)
+
+
+async def test_after_two_unanswered_requests_the_unit_is_not_asked_for_ten_seconds(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    sent = len(unit.requests)
+    clock.advance(9)
+    await client.refresh([PointKey.HUMIDITY])
+    assert len(unit.requests) == sent, "the unit was asked while the breaker was open"
+    unit.answering = True
+    clock.advance(1)
+    await client.refresh([PointKey.HUMIDITY])
+    value = client.value(PointKey.HUMIDITY)
+    assert value is not None and value.quality is Quality.GOOD
+
+
+async def test_after_an_outage_every_polled_point_is_read_once_the_unit_answers(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    watch(client, PointKey.HUMIDITY, PointKey.RTC_BATTERY_VOLTAGE)
+    unit.answering = False
+    for _ in range(4):
+        clock.advance(30)
+        await client.poll()
+    assert client.status(Status.CONNECTED).value is False
+    unit.answering = True
+    clock.advance(30)
+    await client.poll()
+    unit.requests.clear()
+    await client.poll()
+    assert client.status(Status.CONNECTED).value is True
+    assert 0x24 in read(unit), "the battery, not read during the outage, was not read after it"
 
 
 async def test_a_raising_callback_does_not_stop_the_others(
@@ -575,3 +627,71 @@ async def test_a_client_can_be_given_its_own_timing(unit: SimulatedDuka, clock: 
     await client.poll()
     assert read(unit) == [0x01]
     await client.disconnect()
+
+
+async def test_after_an_outage_of_15_s_a_value_read_every_10_s_is_back_20_s_after_it_began(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    watch(client, PointKey.HUMIDITY)
+    client.set_poll_interval(PointKey.HUMIDITY, 10.0)
+    clock.advance(10)
+    await client.poll()
+    unit.answering = False
+    good_again: int | None = None
+    for second in range(1, 41):
+        clock.advance(1)
+        if second == 15:
+            unit.answering = True
+        await client.poll()
+        value = client.value(PointKey.HUMIDITY)
+        if second >= 15 and good_again is None and value is not None and value.quality is Quality.GOOD:
+            good_again = second
+    assert good_again == 20
+
+
+async def test_a_cancelled_probe_lets_the_next_one_through(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    clock.advance(10)
+    probe = asyncio.ensure_future(client.refresh([PointKey.HUMIDITY]))
+    await asyncio.sleep(0.05)
+    probe.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await probe
+    unit.answering = True
+    await client.refresh([PointKey.HUMIDITY])
+    value = client.value(PointKey.HUMIDITY)
+    assert value is not None and value.quality is Quality.GOOD
+
+
+async def test_an_outage_and_its_end_are_logged_once_each(
+    client: Client, unit: SimulatedDuka, clock: FakeClock, caplog: pytest.LogCaptureFixture
+) -> None:
+    watch(client, PointKey.HUMIDITY)
+    unit.answering = False
+    with caplog.at_level(logging.INFO):
+        for _ in range(4):
+            clock.advance(30)
+            await client.poll()
+        unit.answering = True
+        clock.advance(30)
+        await client.poll()
+    said = [r.getMessage() for r in caplog.records if r.levelno >= logging.INFO and "answer" in r.getMessage()]
+    assert said == ["The Duka One stopped answering 30 s ago", "The Duka One answers again, after 120 s"]
+
+
+async def test_diagnostics_count_requests_and_the_breaker_without_naming_the_unit(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    diagnostics = client.diagnostics()
+    assert diagnostics["unanswered"] == 2 and diagnostics["refused_while_backing_off"] == 1
+    assert diagnostics["backing_off_for"] == 10.0 and diagnostics["backoffs"] == 1
+    text = repr(diagnostics)
+    assert unit.device_id not in text and unit.password not in text and "127.0.0.1" not in text

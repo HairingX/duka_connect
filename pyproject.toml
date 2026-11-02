@@ -33,7 +33,7 @@ classifiers = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "event_connect>=0.1,<0.2",
+    "event_connect>=0.2,<0.3",
 ]
 
 [project.urls]
