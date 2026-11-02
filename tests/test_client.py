@@ -695,3 +695,13 @@ async def test_diagnostics_count_requests_and_the_breaker_without_naming_the_uni
     assert diagnostics["backing_off_for"] == 10.0 and diagnostics["backoffs"] == 1
     text = repr(diagnostics)
     assert unit.device_id not in text and unit.password not in text and "127.0.0.1" not in text
+
+
+async def test_polls_made_together_read_once(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    watch(client, PointKey.HUMIDITY)
+    clock.advance(30)
+    unit.requests.clear()
+    await asyncio.gather(client.poll(), client.poll(), client.poll())
+    assert read(unit).count(0x25) == 1

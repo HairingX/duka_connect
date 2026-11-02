@@ -1,5 +1,4 @@
 """The client: connecting to a unit, reading what is due, and writing."""
-import asyncio
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
@@ -13,6 +12,7 @@ from event_connect import (
     DataValue,
     Key,
     NotConnectedError,
+    Passes,
     PollRate,
     Quality,
     ReadOnlyError,
@@ -104,7 +104,7 @@ class Client:
         self._unanswered_requests = 0
         self._refused = 0
         self._latency_total = 0.0
-        self._poll_lock = asyncio.Lock()
+        self._passes = Passes()
         self._connected = False
 
     # ============================================================================== the unit
@@ -259,19 +259,19 @@ class Client:
     # =============================================================================== reading
 
     async def poll(self) -> None:
-        """Read whatever is due. A call made during a pass waits for it instead of starting another.
+        """Read whatever is due. A call made during a pass waits for it, then makes a pass of its own
+        only if something is still due.
 
         A unit that does not answer makes `Status.CONNECTED` false and the points read stale;
         nothing is raised.
         """
         self._require_connected()
-        if self._poll_lock.locked():
-            async with self._poll_lock:
-                return
-        async with self._poll_lock:
-            due = self._scheduler.due()
-            if due:
-                await self._read([self._points[key] for key in due])
+        await self._passes.run(self._pass, due=lambda: bool(self._scheduler.due()))
+
+    async def _pass(self) -> None:
+        due = self._scheduler.due()
+        if due:
+            await self._read([self._points[key] for key in due])
 
     def seconds_until_next_poll(self) -> float | None:
         """Seconds until `poll()` has something to do, 0 if it has now; None if it never will."""
