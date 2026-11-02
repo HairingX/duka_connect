@@ -89,7 +89,9 @@ not make it unavailable; when it answers again, every subscribed point is read. 
 `Timing` can be given to `Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
 
 `client.status(Status.CONNECTED)` says whether the unit answers, and
-`subscribe_status(Status.CONNECTED, callback)` tells every change.
+`subscribe_status(Status.CONNECTED, callback)` tells every change. `client.diagnostics()` counts the requests,
+those left unanswered or held back while the unit is not asked, and the breaker's state, for a
+bug report; it never holds the address, device id or password.
 
 ### Writing
 

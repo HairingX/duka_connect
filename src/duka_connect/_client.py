@@ -20,6 +20,7 @@ from event_connect import (
     Refresh,
     Selector,
     Status,
+    StatusBoard,
     StatusCallback,
     Subscriptions,
     SystemClock,
@@ -93,15 +94,16 @@ class Client:
         self._polled_keys: set[str] = set()
         self._scheduled_keys = frozenset(point.key for point in self._readable)
         self._timing = timing
-        self._reachability = Reachability(self._clock, timing.offline_after)
+        self._reachability = Reachability(self._clock, timing.offline_after, name="The Duka One")
         self._breaker_settings = breaker
         self._breaker: Breaker = breaker.breaker()
         self._scheduler = timing.scheduler(self._clock)
         self._scheduler.set_points(self._readable)
-        self._status: dict[Status, DataValue[bool]] = {
-            status: DataValue(False, Quality.GOOD, self._clock.now()) for status in Status
-        }
-        self._status_callbacks: dict[Status, list[StatusCallback]] = {status: [] for status in Status}
+        self._statuses = StatusBoard(self._clock)
+        self._requests = 0
+        self._unanswered_requests = 0
+        self._refused = 0
+        self._latency_total = 0.0
         self._poll_lock = asyncio.Lock()
         self._connected = False
 
@@ -159,6 +161,21 @@ class Client:
         self._point(key)
         return cast(DataValue[T] | None, self._values.get(key))
 
+    def diagnostics(self) -> Mapping[str, object]:
+        """Counters for a bug report; never the address, device id or password."""
+        now = self._clock.monotonic()
+        answered = self._requests - self._unanswered_requests
+        return {
+            "requests": self._requests,
+            "unanswered": self._unanswered_requests,
+            "refused_while_backing_off": self._refused,
+            "average_latency": self._latency_total / answered if answered else None,
+            "consecutive_unanswered": self._breaker.unanswered_in_a_row,
+            "backing_off_for": self._breaker.open_for(now),
+            "backoffs": self._breaker.opened,
+            "silent_for": self._reachability.silent_for,
+        }
+
     def values(self) -> Mapping[Key[Any], DataValue[Any]]:
         """Every value read so far, by key."""
         return {self._points[key].key: value for key, value in self._values.items()}
@@ -169,7 +186,7 @@ class Client:
         `Status.CONNECTED` turns false only once the unit has been silent for the timing's
         `offline_after`; `silent_for` says how long it has been so far.
         """
-        return self._status[status]
+        return self._statuses.value(status)
 
     @property
     def silent(self) -> bool:
@@ -213,15 +230,7 @@ class Client:
 
         Returns the unsubscriber.
         """
-        callbacks = self._status_callbacks[status]
-        callbacks.append(callback)
-        _tell_status(callback, status, None, self._status[status])
-
-        def unsubscribe() -> None:
-            if callback in callbacks:
-                callbacks.remove(callback)
-
-        return unsubscribe
+        return self._statuses.subscribe(status, callback)
 
     def set_polling(self, key: str, enabled: bool = True) -> None:
         """Poll `key` on its schedule even without a subscriber; False stops that."""
@@ -365,7 +374,7 @@ class Client:
             point = self._writable_point(write.key)
             encoded = point.to_bytes(write.value)
             (commands if point.write_kind is WriteKind.COMMAND else settings).append((point, encoded))
-        self._set_status(Status.WRITE_PENDING, True)
+        self._statuses.set(Status.WRITE_PENDING, True)
         try:
             taken = True
             if settings:
@@ -380,7 +389,7 @@ class Client:
                     self._written(point)
             return taken
         finally:
-            self._set_status(Status.WRITE_PENDING, False)
+            self._statuses.set(Status.WRITE_PENDING, False)
 
     async def _write_settings(self, settings: list[tuple[Point[Any], bytes]]) -> bool:
         packet = encode_request(
@@ -424,56 +433,28 @@ class Client:
     async def _request(self, packet: bytes) -> Mapping[int, bytes | None] | None:
         """Send a request, and return the unit's answer, or None if it gave none or the breaker
         is open."""
-        probe = self._breaker.is_open
-        if not self._breaker.allows(self._clock.monotonic()):
-            self._unanswered()
+        attempt = self._breaker.attempt(self._clock.monotonic())
+        if attempt is None:
+            self._refused += 1
+            self._statuses.set(Status.CONNECTED, self._reachability.unanswered())
             return None
-        try:
-            response = await self._link.request(
-                packet, self.device_id, self._sizes, self._timeout, self._attempts
-            )
-        except TimeoutError:
-            self._breaker.unanswered(self._clock.monotonic())
-            self._unanswered()
-            return None
-        except BaseException:
-            if probe:
-                self._breaker.released()
-            raise
-        self._breaker.answered()
-        self._answered()
+        with attempt:
+            started = self._clock.monotonic()
+            self._requests += 1
+            try:
+                response = await self._link.request(
+                    packet, self.device_id, self._sizes, self._timeout, self._attempts
+                )
+            except TimeoutError:
+                self._unanswered_requests += 1
+                attempt.unanswered(self._clock.monotonic())
+                _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
+                self._statuses.set(Status.CONNECTED, self._reachability.unanswered())
+                return None
+            self._latency_total += self._clock.monotonic() - started
+            attempt.answered()
+        self._statuses.set(Status.CONNECTED, self._reachability.answered(self._scheduler))
         return response.values
-
-    def _unanswered(self) -> None:
-        was_reachable = self._status[Status.CONNECTED].value
-        reachable = self._reachability.unanswered()
-        _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
-        self._set_status(Status.CONNECTED, reachable)
-        if was_reachable and not reachable:
-            _LOGGER.info("The Duka One stopped answering %.0f s ago", self._reachability.silent_for)
-
-    def _answered(self) -> None:
-        was_silent = self._reachability.silent
-        silent_for = self._reachability.silent_for
-        was_reachable = self._status[Status.CONNECTED].value
-        self._set_status(Status.CONNECTED, self._reachability.answered())
-        if not was_reachable and self._connected:
-            _LOGGER.info("The Duka One answers again, after %.0f s", silent_for)
-            # It counted as not answering: everything it holds may have changed meanwhile.
-            self._scheduler.reset()
-        elif was_silent:
-            failed = [key for key in self._scheduled_keys if self._scheduler.consecutive_failures(key)]
-            if failed:
-                self._scheduler.refresh(failed, force=True)
-
-    def _set_status(self, status: Status, value: bool) -> None:
-        old = self._status[status]
-        if old.value is value:
-            return
-        new = DataValue(value, Quality.GOOD, self._clock.now())
-        self._status[status] = new
-        for callback in list(self._status_callbacks[status]):
-            _tell_status(callback, status, old, new)
 
     def _point(self, key: Key[Any]) -> Point[Any]:
         point = self._points.get(key)
@@ -486,13 +467,3 @@ class Client:
     def _require_connected(self) -> None:
         if not self._connected:
             raise NotConnectedError("The client is not connected")
-
-
-def _tell_status(callback: StatusCallback, status: Status, old: DataValue[bool] | None,
-                 new: DataValue[bool]) -> None:
-    """Call one status subscriber; its error is logged and kept from the others."""
-    try:
-        callback(status, old, new)
-    except Exception:
-        _LOGGER.exception("a subscriber to %s raised", status)
-

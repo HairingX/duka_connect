@@ -672,12 +672,26 @@ async def test_an_outage_and_its_end_are_logged_once_each(
 ) -> None:
     watch(client, PointKey.HUMIDITY)
     unit.answering = False
-    with caplog.at_level(logging.INFO, logger="duka_connect"):
+    with caplog.at_level(logging.INFO):
         for _ in range(4):
             clock.advance(30)
             await client.poll()
         unit.answering = True
         clock.advance(30)
         await client.poll()
-    said = [r.getMessage() for r in caplog.records if r.levelno >= logging.INFO]
+    said = [r.getMessage() for r in caplog.records if r.levelno >= logging.INFO and "answer" in r.getMessage()]
     assert said == ["The Duka One stopped answering 30 s ago", "The Duka One answers again, after 120 s"]
+
+
+async def test_diagnostics_count_requests_and_the_breaker_without_naming_the_unit(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    diagnostics = client.diagnostics()
+    assert diagnostics["unanswered"] == 2 and diagnostics["refused_while_backing_off"] == 1
+    assert diagnostics["backing_off_for"] == 10.0 and diagnostics["backoffs"] == 1
+    text = repr(diagnostics)
+    assert unit.device_id not in text and unit.password not in text and "127.0.0.1" not in text
