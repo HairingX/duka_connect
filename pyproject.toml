@@ -26,14 +26,12 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Topic :: Software Development :: Libraries",
     "Topic :: Home Automation",
     "Typing :: Typed",
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
     "event_connect>=0.1,<0.2",
 ]
@@ -43,6 +41,11 @@ Homepage = "https://github.com/HairingX/duka_connect"
 Source = "https://github.com/HairingX/duka_connect"
 Issues = "https://github.com/HairingX/duka_connect/issues"
 Releases = "https://github.com/HairingX/duka_connect/releases"
+
+[tool.hairingx-workflows]
+transition = "Moved onto the shared workflows with tests that do not yet cover every line."
+coverage = 93
+libraries = ["event_connect"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
