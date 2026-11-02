@@ -4,9 +4,11 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
 
-from ._duka_one import DUKA_ONE, DUKA_ONE_TIMING, PointKey
+from ._duka_one import DUKA_ONE, DUKA_ONE_BREAKER, DUKA_ONE_TIMING, PointKey
 from event_connect import (
+    Breaker,
     CannotConnectError,
+    CircuitBreaker,
     Clock,
     DataValue,
     Key,
@@ -64,6 +66,7 @@ class Client:
         clock: Clock | None = None,
         read_only: bool = False,
         timing: Timing = DUKA_ONE_TIMING,
+        breaker: CircuitBreaker = DUKA_ONE_BREAKER,
     ) -> None:
         """Set up a client; nothing is sent until `connect()`.
 
@@ -72,6 +75,8 @@ class Client:
             attempts: how many times a request is sent before the unit counts as not answering.
             read_only: refuse every write.
             timing: when points are read, and how long a write takes to show.
+            breaker: after how many unanswered requests the unit is no longer asked, and for how
+                long; requests meanwhile fail at once.
         """
         self.device_id = device_id
         self._password = password
@@ -89,6 +94,8 @@ class Client:
         self._scheduled_keys = frozenset(point.key for point in self._readable)
         self._timing = timing
         self._reachability = Reachability(self._clock, timing.offline_after)
+        self._breaker_settings = breaker
+        self._breaker: Breaker = breaker.breaker()
         self._scheduler = timing.scheduler(self._clock)
         self._scheduler.set_points(self._readable)
         self._status: dict[Status, DataValue[bool]] = {
@@ -124,6 +131,7 @@ class Client:
                 may be wrong, as a unit does not answer a wrong password.
             UnsupportedDeviceError: the unit answered, but not as a Duka One does.
         """
+        self._breaker = self._breaker_settings.breaker()
         if not await self._read(self._readable):
             raise CannotConnectError(
                 f"No answer from {self.host}; check its address, device id and password"
@@ -414,18 +422,44 @@ class Client:
     # ============================================================================= internals
 
     async def _request(self, packet: bytes) -> Mapping[int, bytes | None] | None:
-        """Send a request, and return the unit's answer, or None if it gave none."""
+        """Send a request, and return the unit's answer, or None if it gave none or the breaker
+        is open."""
+        probe = self._breaker.is_open
+        if not self._breaker.allows(self._clock.monotonic()):
+            self._unanswered()
+            return None
         try:
             response = await self._link.request(
                 packet, self.device_id, self._sizes, self._timeout, self._attempts
             )
         except TimeoutError:
-            reachable = self._reachability.unanswered()
-            _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
-            self._set_status(Status.CONNECTED, reachable)
+            self._breaker.unanswered(self._clock.monotonic())
+            self._unanswered()
             return None
-        self._set_status(Status.CONNECTED, self._reachability.answered())
+        except BaseException:
+            if probe:
+                self._breaker.released()
+            raise
+        self._breaker.answered()
+        self._answered()
         return response.values
+
+    def _unanswered(self) -> None:
+        reachable = self._reachability.unanswered()
+        _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
+        self._set_status(Status.CONNECTED, reachable)
+
+    def _answered(self) -> None:
+        was_silent = self._reachability.silent
+        was_reachable = self._status[Status.CONNECTED].value
+        self._set_status(Status.CONNECTED, self._reachability.answered())
+        if not was_reachable and self._connected:
+            # It counted as not answering: everything it holds may have changed meanwhile.
+            self._scheduler.reset()
+        elif was_silent:
+            failed = [key for key in self._scheduled_keys if self._scheduler.consecutive_failures(key)]
+            if failed:
+                self._scheduler.refresh(failed, force=True)
 
     def _set_status(self, status: Status, value: bool) -> None:
         old = self._status[status]

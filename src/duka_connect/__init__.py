@@ -7,8 +7,9 @@ from importlib.metadata import version as _installed_version
 
 from ._client import DEFAULT_PASSWORD, Client
 from ._discovery import DiscoveredDevice, discover
-from ._duka_one import DUKA_ONE, DUKA_ONE_TIMING, PointKey
+from ._duka_one import DUKA_ONE, DUKA_ONE_BREAKER, DUKA_ONE_TIMING, PointKey
 from event_connect import (
+    CircuitBreaker,
     CannotConnectError,
     Certainty,
     Change,
@@ -42,12 +43,14 @@ __version__ = _installed_version("duka_connect")
 __all__ = [
     "DEFAULT_PASSWORD",
     "DUKA_ONE",
+    "DUKA_ONE_BREAKER",
     "DUKA_ONE_TIMING",
     "PORT",
     "AlarmLevel",
     "CannotConnectError",
     "Certainty",
     "Change",
+    "CircuitBreaker",
     "Client",
     "ClientError",
     "Clock",

@@ -78,11 +78,15 @@ until they settle. What is read again is what is subscribed to. `docs/protocol.m
 
 One request is sent at a time, and whatever is due when the unit is free goes out together. A
 read asked for after a change does not move a point's own rhythm, so points read together stay
-together. A read the unit does not answer is tried again a second later, then 2, 4 and 8 seconds
-later, never later than its next turn; its value meanwhile is the last good one, `STALE`. The
-unit counts as not answering - `Status.CONNECTED` false - only after half a minute without an
-answer, so one lost packet does not make it unavailable. A different `Timing` can be given to
-`Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
+together. A request the unit does not answer is sent again, `attempts` times in all; a read still
+unanswered waits for its next turn, and its value meanwhile is the last good one, `STALE`. Once
+the unit answers again, whatever failed meanwhile is read at once. After two requests in a row go
+unanswered, the unit is not asked for 10 seconds, so a pass over a silent unit fails at once
+rather than waiting out every request; then one request probes it (`DUKA_ONE_BREAKER`, which a
+different `CircuitBreaker` given to `Client` replaces). The unit counts as not answering -
+`Status.CONNECTED` false - only after half a minute without an answer, so one lost packet does
+not make it unavailable; when it answers again, every subscribed point is read. A different
+`Timing` can be given to `Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
 
 `client.status(Status.CONNECTED)` says whether the unit answers, and
 `subscribe_status(Status.CONNECTED, callback)` tells every change.
