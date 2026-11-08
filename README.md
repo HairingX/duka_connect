@@ -99,11 +99,11 @@ bug report, and never holds the address, device id or password:
 | Key | Meaning |
 |---|---|
 | `requests`, `unanswered` | Requests sent, and those the unit left unanswered. |
-| `refused_while_paused` | Requests not sent, as the unit was not to be asked. |
+| `refused_while_open` | Requests not sent, as the breaker was open. |
 | `average_latency` | Seconds the unit took to answer, on average; None before its first answer. |
 | `consecutive_unanswered` | Requests left unanswered since its last answer. |
-| `paused`, `paused_for` | Whether the unit is not asked now, and for how many more seconds. |
-| `pauses` | How many pauses there have been since its last answer. |
+| `open`, `open_for` | Whether the breaker is open, so the unit is not asked now, and for how many more seconds. |
+| `openings` | How many times the breaker has opened since the unit last answered. |
 | `gave_up` | Whether it is no longer asked at all, as a `CircuitBreaker` given to `Client` may decide. |
 | `silent_for` | Seconds since its first request left unanswered since its last answer. |
 

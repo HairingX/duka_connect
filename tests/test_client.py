@@ -349,7 +349,7 @@ async def test_a_client_given_a_breaker_that_never_retries_gives_the_unit_up(
     await client.refresh([PointKey.HUMIDITY])
     assert len(unit.requests) == sent
     diagnostics = client.diagnostics()
-    assert diagnostics["gave_up"] is True and diagnostics["paused"] is True
+    assert diagnostics["gave_up"] is True and diagnostics["open"] is True
     await client.disconnect()
 
 
@@ -748,9 +748,9 @@ async def test_diagnostics_count_requests_and_the_breaker_without_naming_the_uni
     await client.refresh([PointKey.HUMIDITY])
     await client.refresh([PointKey.HUMIDITY])
     diagnostics = client.diagnostics()
-    assert diagnostics["unanswered"] == 2 and diagnostics["refused_while_paused"] == 1
-    assert diagnostics["paused"] is True and diagnostics["paused_for"] == 10.0
-    assert diagnostics["pauses"] == 1 and diagnostics["gave_up"] is False
+    assert diagnostics["unanswered"] == 2 and diagnostics["refused_while_open"] == 1
+    assert diagnostics["open"] is True and diagnostics["open_for"] == 10.0
+    assert diagnostics["openings"] == 1 and diagnostics["gave_up"] is False
     text = repr(diagnostics)
     assert unit.device_id not in text and unit.password not in text and "127.0.0.1" not in text
 
@@ -762,11 +762,11 @@ async def test_diagnostics_count_pauses_only_since_the_last_answer(
     for _ in range(3):
         await client.refresh([PointKey.HUMIDITY])
         clock.advance(10)
-    assert client.diagnostics()["pauses"] == 2
+    assert client.diagnostics()["openings"] == 2
     unit.answering = True
     await client.refresh([PointKey.HUMIDITY])
     diagnostics = client.diagnostics()
-    assert diagnostics["pauses"] == 0 and diagnostics["paused"] is False and diagnostics["paused_for"] == 0.0
+    assert diagnostics["openings"] == 0 and diagnostics["open"] is False and diagnostics["open_for"] == 0.0
 
 
 async def test_polls_made_together_read_once(

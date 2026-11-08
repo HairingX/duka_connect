@@ -166,17 +166,17 @@ class Client:
 
     def diagnostics(self) -> Mapping[str, object]:
         """Counters for a bug report; never the address, device id or password."""
-        paused_for = self._breaker.open_for(self._clock.monotonic())
+        open_for = self._breaker.open_for(self._clock.monotonic())
         answered = self._requests - self._unanswered_requests
         return {
             "requests": self._requests,
             "unanswered": self._unanswered_requests,
-            "refused_while_paused": self._refused,
+            "refused_while_open": self._refused,
             "average_latency": self._latency_total / answered if answered else None,
             "consecutive_unanswered": self._breaker.unanswered_in_a_row,
-            "paused": paused_for > 0,
-            "paused_for": paused_for,
-            "pauses": self._breaker.openings,
+            "open": open_for > 0,
+            "open_for": open_for,
+            "openings": self._breaker.openings,
             "gave_up": self._breaker.gave_up,
             "silent_for": self._reachability.silent_for,
         }
