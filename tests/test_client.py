@@ -755,7 +755,7 @@ async def test_diagnostics_count_requests_and_the_breaker_without_naming_the_uni
     assert unit.device_id not in text and unit.password not in text and "127.0.0.1" not in text
 
 
-async def test_diagnostics_count_pauses_only_since_the_last_answer(
+async def test_diagnostics_count_openings_only_since_the_last_answer(
     client: Client, unit: SimulatedDuka, clock: FakeClock
 ) -> None:
     unit.answering = False
