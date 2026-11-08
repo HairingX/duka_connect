@@ -68,7 +68,8 @@ in UTC), and `.raw`: the bytes the unit answered.
 
 A subscribed point is read on its poll rate: `FAST` 10 s, `MEDIUM` 30 s, `SLOW` 60 s, `RARE`
 15 min, or `STATIC`, once when connecting. `set_poll_interval(key or poll rate, seconds)` changes
-one, and `refresh()` reads now.
+one, and `refresh()` reads now: a poll rate's points, keys, or everything. A command among the
+keys is left out, as it has no value; a key a Duka One does not have raises `KeyError`.
 
 A point names what its change affects, in `on_change`, and a command what it changes, in
 `on_write`: a `Refresh` of those points, after a wait, and read again until they settle where it
@@ -82,16 +83,27 @@ together. A request the unit does not answer is sent again, `attempts` times in 
 unanswered waits for its next turn, and its value meanwhile is the last good one, `STALE`. Once
 the unit answers again, whatever failed meanwhile is read at once. After two requests in a row go
 unanswered, the unit is not asked for 10 seconds, so a pass over a silent unit fails at once
-rather than waiting out every request; then one request probes it (`DUKA_ONE_BREAKER`, which a
-different `CircuitBreaker` given to `Client` replaces). The unit counts as not answering -
+rather than waiting out every request; then one request probes it, and again every 10 seconds for
+as long as it stays silent (`DUKA_ONE_BREAKER`, which a different `CircuitBreaker` given to
+`Client` replaces). The unit counts as not answering -
 `Status.CONNECTED` false - only after half a minute without an answer, so one lost packet does
 not make it unavailable; when it answers again, every subscribed point is read. A different
 `Timing` can be given to `Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
 
 `client.status(Status.CONNECTED)` says whether the unit answers, and
-`subscribe_status(Status.CONNECTED, callback)` tells every change. `client.diagnostics()` counts the requests,
-those left unanswered or held back while the unit is not asked, and the breaker's state, for a
-bug report; it never holds the address, device id or password.
+`subscribe_status(Status.CONNECTED, callback)` tells every change. `client.diagnostics()` is for a
+bug report, and never holds the address, device id or password:
+
+| Key | Meaning |
+|---|---|
+| `requests`, `unanswered` | Requests sent, and those the unit left unanswered. |
+| `refused_while_paused` | Requests not sent, as the unit was not to be asked. |
+| `average_latency` | Seconds the unit took to answer, on average; None before its first answer. |
+| `consecutive_unanswered` | Requests left unanswered since its last answer. |
+| `paused`, `paused_for` | Whether the unit is not asked now, and for how many more seconds. |
+| `pauses` | How many times it has not been asked since its last answer. |
+| `gave_up` | Whether it is no longer asked at all, as a `CircuitBreaker` given to `Client` may decide. |
+| `silent_for` | Seconds since its first request left unanswered since its last answer. |
 
 ### Writing
 
