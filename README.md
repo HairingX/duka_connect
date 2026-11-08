@@ -84,9 +84,11 @@ unanswered waits for its next turn, and its value meanwhile is the last good one
 the unit answers again, whatever failed meanwhile is read at once. After two requests in a row go
 unanswered, the unit is not asked for 10 seconds, so a pass over a silent unit fails at once
 rather than waiting out every request; then one request probes it, and again every 10 seconds for
-as long as it stays silent (`DUKA_ONE_BREAKER`, which a different `CircuitBreaker` given to
-`Client` replaces). The unit counts as not answering -
-`Status.CONNECTED` false - only after half a minute without an answer, so one lost packet does
+as long as it stays silent. That is `DUKA_ONE_BREAKER`,
+`CircuitBreaker(after=2, retry=Retry(Fixed(10.0)))`; a different one given to `Client` replaces
+it, and one with `retry=NO_RETRY` gives a silent unit up until it is connected again.
+
+The unit counts as not answering - `Status.CONNECTED` false - only after half a minute without an answer, so one lost packet does
 not make it unavailable; when it answers again, every subscribed point is read. A different
 `Timing` can be given to `Client`; `DUKA_ONE_TIMING` is the one a Duka One is read by.
 
@@ -101,7 +103,7 @@ bug report, and never holds the address, device id or password:
 | `average_latency` | Seconds the unit took to answer, on average; None before its first answer. |
 | `consecutive_unanswered` | Requests left unanswered since its last answer. |
 | `paused`, `paused_for` | Whether the unit is not asked now, and for how many more seconds. |
-| `pauses` | How many times it has not been asked since its last answer. |
+| `pauses` | How many pauses there have been since its last answer. |
 | `gave_up` | Whether it is no longer asked at all, as a `CircuitBreaker` given to `Client` may decide. |
 | `silent_for` | Seconds since its first request left unanswered since its last answer. |
 

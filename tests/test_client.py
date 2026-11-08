@@ -10,8 +10,10 @@ from conftest import make_client
 from duka_connect import (
     DUKA_ONE,
     DUKA_ONE_TIMING,
+    NO_RETRY,
     AlarmLevel,
     CannotConnectError,
+    CircuitBreaker,
     Client,
     DataValue,
     InvalidValueError,
@@ -331,6 +333,24 @@ async def test_a_silent_unit_is_probed_every_ten_seconds_for_as_long_as_it_stays
         await client.refresh([PointKey.HUMIDITY])
         assert len(unit.requests) == sent + 1, "the unit was not probed after ten seconds"
     assert client.diagnostics()["gave_up"] is False
+
+
+async def test_a_client_given_a_breaker_that_never_retries_gives_the_unit_up(
+    unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
+                    clock=clock, breaker=CircuitBreaker(after=1, retry=NO_RETRY))
+    await client.connect()
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    unit.answering = True
+    clock.advance(3600)
+    sent = len(unit.requests)
+    await client.refresh([PointKey.HUMIDITY])
+    assert len(unit.requests) == sent
+    diagnostics = client.diagnostics()
+    assert diagnostics["gave_up"] is True and diagnostics["paused"] is True
+    await client.disconnect()
 
 
 async def test_after_an_outage_every_polled_point_is_read_once_the_unit_answers(

@@ -9,6 +9,7 @@ from ._client import DEFAULT_PASSWORD, Client
 from ._discovery import DiscoveredDevice, discover
 from ._duka_one import DUKA_ONE, DUKA_ONE_BREAKER, DUKA_ONE_TIMING, PointKey
 from event_connect import (
+    NO_RETRY,
     CircuitBreaker,
     CannotConnectError,
     Certainty,
@@ -16,6 +17,7 @@ from event_connect import (
     ClientError,
     Clock,
     DataValue,
+    Fixed,
     InvalidValueError,
     Key,
     Labels,
@@ -25,6 +27,7 @@ from event_connect import (
     Quality,
     ReadOnlyError,
     Refresh,
+    Retry,
     Status,
     StatusCallback,
     SystemClock,
@@ -34,6 +37,7 @@ from event_connect import (
     ValueCallback,
     Write,
     WriteKind,
+    WriteRange,
 )
 from ._points import Point
 from ._protocol import PORT, ProtocolError
@@ -45,6 +49,7 @@ __all__ = [
     "DUKA_ONE",
     "DUKA_ONE_BREAKER",
     "DUKA_ONE_TIMING",
+    "NO_RETRY",
     "PORT",
     "AlarmLevel",
     "CannotConnectError",
@@ -56,6 +61,7 @@ __all__ = [
     "Clock",
     "DataValue",
     "DiscoveredDevice",
+    "Fixed",
     "InvalidValueError",
     "Key",
     "Labels",
@@ -68,6 +74,7 @@ __all__ = [
     "Quality",
     "ReadOnlyError",
     "Refresh",
+    "Retry",
     "Speed",
     "Status",
     "StatusCallback",
@@ -80,5 +87,6 @@ __all__ = [
     "VentilationMode",
     "Write",
     "WriteKind",
+    "WriteRange",
     "discover",
 ]
