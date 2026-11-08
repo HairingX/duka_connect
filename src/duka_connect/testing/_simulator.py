@@ -1,28 +1,21 @@
-"""A simulated Duka One and a clock that moves only when told, for testing code that uses this
-library without a unit; and measurements of a real unit's timing."""
+"""A simulated Duka One, answering on a local UDP port."""
 import asyncio
 from collections.abc import Iterable, Mapping
 
-from ._duka_one import DUKA_ONE
-from event_connect.testing import FakeClock, Latency, Settling, recommended_refresh
-from ._measure import measure_fan_settling, measure_latency
-from ._protocol import (
-    SEARCH_DEVICE_ID,
-    Function,
-    ProtocolError,
-    decode_request,
-    encode_response,
-)
+from .._duka_one import DUKA_ONE, PointKey
+from .._protocol import DEVICE_ID_PARAMETER, SEARCH_DEVICE_ID, Function, ProtocolError
+from ._protocol import decode_request, encode_response
 
-_SEARCH = 0x7C
-_RESET_FILTER_TIMER = 0x65
-_RESET_ALARMS = 0x80
-_FILTER_TIMER = 0x64
-_FILTER_REPLACE = 0x88
-_ALARM = 0x83
-_RESTORE_FAN_SPEEDS = 0x012A
-_FAN_SPEEDS = range(0x3A, 0x40)
+_PARAMETER = {point.key: point.parameter for point in DUKA_ONE}
 _SIZES = {point.parameter: point.size for point in DUKA_ONE}
+_FAN_SPEEDS = tuple(
+    _PARAMETER[key]
+    for key in (
+        PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
+        PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,
+        PointKey.SUPPLY_SPEED_3, PointKey.EXHAUST_SPEED_3,
+    )
+)
 
 DEFAULT_VALUES: Mapping[int, bytes] = {
     0x01: b"\x01",
@@ -48,7 +41,7 @@ DEFAULT_VALUES: Mapping[int, bytes] = {
     0x16: b"\x00",
     0x2D: bytes([0]),
     0x32: b"\x00",
-    **dict(zip(range(0x3A, 0x40), (bytes([speed]) for speed in (80, 80, 160, 160, 255, 255)))),
+    **dict(zip(_FAN_SPEEDS, (bytes([speed]) for speed in (80, 80, 160, 160, 255, 255)))),
     0x4B: (1240).to_bytes(2, "little"),
     0x63: (90).to_bytes(2, "little"),
     0x6F: bytes([15, 30, 12]),
@@ -124,9 +117,9 @@ class SimulatedDuka(asyncio.DatagramProtocol):
             return
         if request.device_id == SEARCH_DEVICE_ID:
             if request.function is Function.READ:
-                answer = [(_SEARCH, self.device_id.encode("ascii"))] + [
+                answer = [(DEVICE_ID_PARAMETER, self.device_id.encode("ascii"))] + [
                     (number, self._get(number))
-                    for number, _ in request.parameters if number != _SEARCH
+                    for number, _ in request.parameters if number != DEVICE_ID_PARAMETER
                 ]
                 self._transport.sendto(encode_response(self.device_id, "", answer), addr)
             return
@@ -147,26 +140,14 @@ class SimulatedDuka(asyncio.DatagramProtocol):
         return self.values.get(number)
 
     def _set(self, number: int, value: bytes) -> None:
-        if number == _RESET_FILTER_TIMER:
-            self.values[_FILTER_TIMER] = bytes([0, 0, FILTER_DAYS])
-            self.values[_FILTER_REPLACE] = b"\x00"
-        elif number == _RESET_ALARMS:
-            self.values[_ALARM] = b"\x00"
-        elif number == _RESTORE_FAN_SPEEDS:
+        if number == _PARAMETER[PointKey.RESET_FILTER_TIMER]:
+            self.values[_PARAMETER[PointKey.FILTER_TIMER]] = bytes([0, 0, FILTER_DAYS])
+            self.values[_PARAMETER[PointKey.FILTER_REPLACE]] = b"\x00"
+        elif number == _PARAMETER[PointKey.RESET_ALARMS]:
+            self.values[_PARAMETER[PointKey.ALARM]] = b"\x00"
+        elif number == _PARAMETER[PointKey.RESTORE_FAN_SPEEDS]:
             for speed in _FAN_SPEEDS:
                 self.values[speed] = DEFAULT_VALUES[speed]
         elif number in self.values:
             self.values[number] = value
 
-
-__all__ = [
-    "DEFAULT_VALUES",
-    "FILTER_DAYS",
-    "FakeClock",
-    "Latency",
-    "Settling",
-    "SimulatedDuka",
-    "measure_fan_settling",
-    "measure_latency",
-    "recommended_refresh",
-]

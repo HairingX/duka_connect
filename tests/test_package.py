@@ -2,6 +2,7 @@
 import event_connect
 
 import duka_connect
+import duka_connect.testing
 
 
 def test_the_version_is_the_installed_packages() -> None:
@@ -11,6 +12,8 @@ def test_the_version_is_the_installed_packages() -> None:
 def test_everything_exported_exists() -> None:
     for name in duka_connect.__all__:
         assert hasattr(duka_connect, name), name
+    for name in duka_connect.testing.__all__:
+        assert hasattr(duka_connect.testing, name), name
 
 
 def test_every_point_has_its_own_key() -> None:
