@@ -49,6 +49,12 @@ def read(unit: SimulatedDuka) -> list[int]:
     return [number for function, numbers in unit.requests if function is Function.READ for number in numbers]
 
 
+def triggers(*rates: PollRate) -> list[int]:
+    """The parameters of the points at these poll rates whose change sets off a refresh: they are
+    polled with no subscriber, as only a read sees their change."""
+    return [point.parameter for point in DUKA_ONE if point.on_change is not None and point.poll_rate in rates]
+
+
 # ============================================================================== connecting
 
 
@@ -165,7 +171,7 @@ async def test_a_poll_reads_only_what_is_due(client: Client, unit: SimulatedDuka
     assert unit.requests == []
     clock.advance(10)
     await client.poll()
-    assert read(unit) == [0xB7]
+    assert read(unit) == sorted([*triggers(PollRate.FAST), 0xB7])
     unit.requests.clear()
     await client.poll()
     assert unit.requests == []
@@ -173,11 +179,12 @@ async def test_a_poll_reads_only_what_is_due(client: Client, unit: SimulatedDuka
 
 async def test_a_static_point_is_not_polled(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
     watch(client, PointKey.FIRMWARE_VERSION)
+    firmware = next(point.parameter for point in DUKA_ONE if point.key == PointKey.FIRMWARE_VERSION)
     unit.requests.clear()
-    clock.advance(10_000)
-    await client.poll()
-    assert unit.requests == []
-    assert client.seconds_until_next_poll() is None
+    for _ in range(3):
+        clock.advance(10_000)
+        await client.poll()
+    assert read(unit) and firmware not in read(unit)
 
 
 async def test_a_poll_interval_can_be_set_for_a_key(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
@@ -186,7 +193,7 @@ async def test_a_poll_interval_can_be_set_for_a_key(client: Client, unit: Simula
     unit.requests.clear()
     clock.advance(60)
     await client.poll()
-    assert read(unit) == [0x24]
+    assert read(unit) == sorted([*triggers(PollRate.FAST, PollRate.MEDIUM, PollRate.SLOW), 0x24])
 
 
 async def test_a_point_without_a_subscriber_is_read_only_when_asked(
@@ -195,10 +202,11 @@ async def test_a_point_without_a_subscriber_is_read_only_when_asked(
     unit.requests.clear()
     clock.advance(10_000)
     await client.poll()
-    assert unit.requests == []
-    client.set_polling(PointKey.HUMIDITY)
+    assert 0x24 not in read(unit)
+    unit.requests.clear()
+    client.set_polling(PointKey.RTC_BATTERY_VOLTAGE)
     await client.poll()
-    assert read(unit) == [0x25]
+    assert read(unit) == [0x24]
 
 
 async def test_a_refresh_reads_a_poll_rate_or_keys_now(client: Client, unit: SimulatedDuka) -> None:
@@ -244,7 +252,7 @@ async def test_a_single_lost_answer_does_not_count_as_not_answering(
     clock.advance(30)
     await client.poll()
     unit.answering = True
-    clock.advance(client.seconds_until_next_poll() or 0.0)
+    clock.advance(30)
     await client.poll()
     assert connected == [True]
     value = client.value(PointKey.HUMIDITY)
@@ -585,10 +593,11 @@ async def test_an_unchanged_value_reads_nothing_more(
     await client.poll()
     clock.advance(10)
     await client.poll()
-    assert read(unit) == [0x83]
+    assert read(unit) == [*sorted(triggers(PollRate.FAST, PollRate.MEDIUM, PollRate.SLOW)), *triggers(PollRate.FAST)]
 
 
 async def test_only_what_is_watched_is_read_again(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
+    """Of the alarm's targets, only filter_replace (0x88) is read again: it is itself a trigger."""
     watch(client, PointKey.ALARM)
     unit.values[0x83] = bytes([AlarmLevel.WARNING])
     clock.advance(60)
@@ -596,7 +605,7 @@ async def test_only_what_is_watched_is_read_again(client: Client, unit: Simulate
     unit.requests.clear()
     clock.advance(10)
     await client.poll()
-    assert unit.requests == []
+    assert read(unit) == sorted([*triggers(PollRate.FAST), 0x88])
 
 
 def test_every_point_read_again_is_a_point_with_a_value() -> None:
@@ -625,7 +634,7 @@ async def test_a_client_can_be_given_its_own_timing(unit: SimulatedDuka, clock: 
     unit.requests.clear()
     clock.advance(5)
     await client.poll()
-    assert read(unit) == [0x01]
+    assert read(unit) == triggers(PollRate.FAST)
     await client.disconnect()
 
 
@@ -705,3 +714,28 @@ async def test_polls_made_together_read_once(
     unit.requests.clear()
     await asyncio.gather(client.poll(), client.poll(), client.poll())
     assert read(unit).count(0x25) == 1
+
+
+async def test_a_trigger_is_polled_with_no_subscriber(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
+    unit.requests.clear()
+    clock.advance(10)
+    await client.poll()
+    assert triggers(PollRate.FAST) and read(unit) == triggers(PollRate.FAST)
+
+
+async def test_overlapping_writes_keep_write_pending_until_the_last_has_finished(client: Client) -> None:
+    seen: list[bool | None] = []
+    client.subscribe_status(Status.WRITE_PENDING, lambda _status, _old, new: seen.append(new.value))
+    in_flight = 0
+    pending_while_in_flight: list[bool | None] = []
+
+    async def write(value: int) -> None:
+        nonlocal in_flight
+        in_flight += 1
+        await client.write(PointKey.HUMIDITY_THRESHOLD, value)
+        in_flight -= 1
+        if in_flight:
+            pending_while_in_flight.append(client.status(Status.WRITE_PENDING).value)
+
+    await asyncio.gather(write(50), write(60))
+    assert pending_while_in_flight == [True] and seen == [False, True, False]
