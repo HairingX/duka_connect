@@ -166,16 +166,18 @@ class Client:
 
     def diagnostics(self) -> Mapping[str, object]:
         """Counters for a bug report; never the address, device id or password."""
-        now = self._clock.monotonic()
+        open_for = self._breaker.open_for(self._clock.monotonic())
         answered = self._requests - self._unanswered_requests
         return {
             "requests": self._requests,
             "unanswered": self._unanswered_requests,
-            "refused_while_backing_off": self._refused,
+            "refused_while_open": self._refused,
             "average_latency": self._latency_total / answered if answered else None,
             "consecutive_unanswered": self._breaker.unanswered_in_a_row,
-            "backing_off_for": self._breaker.open_for(now),
-            "backoffs": self._breaker.opened,
+            "open": open_for > 0,
+            "open_for": open_for,
+            "openings": self._breaker.openings,
+            "gave_up": self._breaker.gave_up,
             "silent_for": self._reachability.silent_for,
         }
 
@@ -285,8 +287,11 @@ class Client:
                       after: float = 0.0) -> None:
         """Read a poll rate's points, a selection, or everything - now, or `after` seconds from now.
 
-        A unit that does not answer makes `Status.CONNECTED` false and the points read stale;
-        nothing is raised.
+        A command in a selection is left out, as it has no value. A unit that does not answer makes
+        `Status.CONNECTED` false and the points read stale; nothing is raised for that.
+
+        Raises:
+            KeyError: naming every key of `targets` a Duka One does not have.
         """
         self._require_connected()
         if targets is None:
@@ -294,7 +299,7 @@ class Client:
         elif isinstance(targets, PollRate):
             points = tuple(point for point in self._readable if point.poll_rate is targets)
         else:
-            points = select(self._readable, selector(targets))
+            points = self._readable_of(selector(targets))
         if after > 0:
             self._scheduler.refresh([point.key for point in points], after=after, force=True)
             return
@@ -341,8 +346,16 @@ class Client:
             self._schedule(trigger, trigger.after or 0.0)
         self._scheduler.record(point.key, data, success=success)
 
+    def _readable_of(self, targets: Selector) -> tuple[Point[Any], ...]:
+        """The readable points of those `targets` names; a command has no value to read.
+
+        Raises:
+            KeyError: naming every key a Duka One does not have.
+        """
+        return tuple(point for point in select(DUKA_ONE, targets) if point.readable)
+
     def _schedule(self, refresh: Refresh, after: float) -> None:
-        keys = [point.key for point in select(self._readable, refresh.targets)]
+        keys = [point.key for point in self._readable_of(refresh.targets)]
         if keys:
             self._scheduler.refresh(keys, after=after, until_stable=refresh.until_stable)
 
@@ -418,7 +431,7 @@ class Client:
         effect = point.on_write
         if effect is None:
             return
-        self._schedule(effect, self._timing.read_back_delay(point))
+        self._schedule(effect, self._timing.on_write_delay(point))
 
     def _writable_point(self, key: Key[Any]) -> Point[Any]:
         if self._read_only:
@@ -436,7 +449,7 @@ class Client:
         attempt = self._breaker.attempt(self._clock.monotonic())
         if attempt is None:
             self._refused += 1
-            self._statuses.set(Status.CONNECTED, self._reachability.unanswered())
+            self._unanswered()
             return None
         with attempt:
             started = self._clock.monotonic()
@@ -449,12 +462,17 @@ class Client:
                 self._unanswered_requests += 1
                 attempt.unanswered(self._clock.monotonic())
                 _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
-                self._statuses.set(Status.CONNECTED, self._reachability.unanswered())
+                self._unanswered()
                 return None
             self._latency_total += self._clock.monotonic() - started
             attempt.answered()
-        self._statuses.set(Status.CONNECTED, self._reachability.answered(self._scheduler))
+        self._reachability.answered(self._scheduler)
+        self._statuses.set(Status.CONNECTED, self._reachability.reachable)
         return response.values
+
+    def _unanswered(self) -> None:
+        self._reachability.unanswered()
+        self._statuses.set(Status.CONNECTED, self._reachability.reachable)
 
     def _point(self, key: Key[Any]) -> Point[Any]:
         point = self._points.get(key)

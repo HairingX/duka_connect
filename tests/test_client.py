@@ -10,8 +10,10 @@ from conftest import make_client
 from duka_connect import (
     DUKA_ONE,
     DUKA_ONE_TIMING,
+    NO_RETRY,
     AlarmLevel,
     CannotConnectError,
+    CircuitBreaker,
     Client,
     DataValue,
     InvalidValueError,
@@ -209,6 +211,17 @@ async def test_a_point_without_a_subscriber_is_read_only_when_asked(
     assert read(unit) == [0x24]
 
 
+async def test_a_refresh_of_a_key_a_duka_one_does_not_have_raises_naming_it(client: Client) -> None:
+    with pytest.raises(KeyError, match="'nothing'"):
+        await client.refresh([PointKey.HUMIDITY, "nothing"])
+
+
+async def test_a_refresh_leaves_out_a_command_which_has_no_value(client: Client, unit: SimulatedDuka) -> None:
+    unit.requests.clear()
+    await client.refresh([PointKey.RESET_ALARMS, PointKey.HUMIDITY])
+    assert read(unit) == [0x25]
+
+
 async def test_a_refresh_reads_a_poll_rate_or_keys_now(client: Client, unit: SimulatedDuka) -> None:
     unit.requests.clear()
     await client.refresh([PointKey.HUMIDITY])
@@ -303,6 +316,41 @@ async def test_after_two_unanswered_requests_the_unit_is_not_asked_for_ten_secon
     await client.refresh([PointKey.HUMIDITY])
     value = client.value(PointKey.HUMIDITY)
     assert value is not None and value.quality is Quality.GOOD
+
+
+async def test_a_silent_unit_is_probed_every_ten_seconds_for_as_long_as_it_stays_silent(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    await client.refresh([PointKey.HUMIDITY])
+    for _ in range(20):
+        sent = len(unit.requests)
+        clock.advance(9.9)
+        await client.refresh([PointKey.HUMIDITY])
+        assert len(unit.requests) == sent, "the unit was asked before ten seconds had passed"
+        clock.advance(0.1)
+        await client.refresh([PointKey.HUMIDITY])
+        assert len(unit.requests) == sent + 1, "the unit was not probed after ten seconds"
+    assert client.diagnostics()["gave_up"] is False
+
+
+async def test_a_client_given_a_breaker_that_never_retries_gives_the_unit_up(
+    unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
+                    clock=clock, breaker=CircuitBreaker(after=1, retry=NO_RETRY))
+    await client.connect()
+    unit.answering = False
+    await client.refresh([PointKey.HUMIDITY])
+    unit.answering = True
+    clock.advance(3600)
+    sent = len(unit.requests)
+    await client.refresh([PointKey.HUMIDITY])
+    assert len(unit.requests) == sent
+    diagnostics = client.diagnostics()
+    assert diagnostics["gave_up"] is True and diagnostics["open"] is True
+    await client.disconnect()
 
 
 async def test_after_an_outage_every_polled_point_is_read_once_the_unit_answers(
@@ -623,7 +671,7 @@ def test_every_point_read_again_is_a_point_with_a_value() -> None:
 def test_every_command_waits_before_what_it_changed_is_read() -> None:
     for point in DUKA_ONE:
         if point.write_kind is WriteKind.COMMAND:
-            assert point.on_write is not None and DUKA_ONE_TIMING.read_back_delay(point) > 0, point.key
+            assert point.on_write is not None and DUKA_ONE_TIMING.on_write_delay(point) > 0, point.key
 
 
 async def test_a_client_can_be_given_its_own_timing(unit: SimulatedDuka, clock: FakeClock) -> None:
@@ -700,10 +748,25 @@ async def test_diagnostics_count_requests_and_the_breaker_without_naming_the_uni
     await client.refresh([PointKey.HUMIDITY])
     await client.refresh([PointKey.HUMIDITY])
     diagnostics = client.diagnostics()
-    assert diagnostics["unanswered"] == 2 and diagnostics["refused_while_backing_off"] == 1
-    assert diagnostics["backing_off_for"] == 10.0 and diagnostics["backoffs"] == 1
+    assert diagnostics["unanswered"] == 2 and diagnostics["refused_while_open"] == 1
+    assert diagnostics["open"] is True and diagnostics["open_for"] == 10.0
+    assert diagnostics["openings"] == 1 and diagnostics["gave_up"] is False
     text = repr(diagnostics)
     assert unit.device_id not in text and unit.password not in text and "127.0.0.1" not in text
+
+
+async def test_diagnostics_count_openings_only_since_the_last_answer(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    for _ in range(3):
+        await client.refresh([PointKey.HUMIDITY])
+        clock.advance(10)
+    assert client.diagnostics()["openings"] == 2
+    unit.answering = True
+    await client.refresh([PointKey.HUMIDITY])
+    diagnostics = client.diagnostics()
+    assert diagnostics["openings"] == 0 and diagnostics["open"] is False and diagnostics["open_for"] == 0.0
 
 
 async def test_polls_made_together_read_once(

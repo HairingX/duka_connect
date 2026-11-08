@@ -3,14 +3,23 @@ import asyncio
 import logging
 import socket
 from dataclasses import dataclass
+from typing import cast
 
-from ._protocol import PORT, SEARCH_DEVICE_ID, Function, ProtocolError, decode_response, encode_request
+from ._duka_one import DUKA_ONE, PointKey
+from ._protocol import (
+    DEVICE_ID_PARAMETER,
+    PORT,
+    SEARCH_DEVICE_ID,
+    Function,
+    ProtocolError,
+    decode_response,
+    encode_request,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
-_SEARCH = 0x7C
-_UNIT_TYPE = 0xB9
-_SIZES = {_SEARCH: 16, _UNIT_TYPE: 2}
+_UNIT_TYPE = next(point for point in DUKA_ONE if point.key == PointKey.UNIT_TYPE)
+_SIZES = {DEVICE_ID_PARAMETER: 16, _UNIT_TYPE.parameter: _UNIT_TYPE.size}
 
 
 @dataclass(frozen=True, slots=True)
@@ -31,15 +40,15 @@ class _Protocol(asyncio.DatagramProtocol):
             response = decode_response(data, _SIZES)
         except ProtocolError:
             return
-        raw_id = response.values.get(_SEARCH)
+        raw_id = response.values.get(DEVICE_ID_PARAMETER)
         if raw_id is None:
             return
         try:
             device_id = raw_id.decode("ascii")
         except UnicodeDecodeError:
             return
-        raw_type = response.values.get(_UNIT_TYPE)
-        unit_type = None if raw_type is None else int.from_bytes(raw_type, "little")
+        raw_type = response.values.get(_UNIT_TYPE.parameter)
+        unit_type = None if raw_type is None else cast(int, _UNIT_TYPE.to_value(raw_type))
         self.found[device_id] = DiscoveredDevice(str(addr[0]), device_id, unit_type)
 
 
@@ -57,7 +66,7 @@ async def discover(
     )
     try:
         packet = encode_request(
-            SEARCH_DEVICE_ID, "", Function.READ, [(_SEARCH, None), (_UNIT_TYPE, None)]
+            SEARCH_DEVICE_ID, "", Function.READ, [(DEVICE_ID_PARAMETER, None), (_UNIT_TYPE.parameter, None)]
         )
         transport.sendto(packet, (target, port))
         await asyncio.sleep(timeout)

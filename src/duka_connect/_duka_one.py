@@ -2,7 +2,19 @@
 from datetime import date, time
 from typing import Any
 
-from event_connect import Certainty, CircuitBreaker, Fixed, Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
+from event_connect import (
+    Certainty,
+    CircuitBreaker,
+    Fixed,
+    Key,
+    Limits,
+    PollRate,
+    Refresh,
+    Retry,
+    Timing,
+    Unit,
+    WriteKind,
+)
 from ._points import (
     Point,
     command_encoder,
@@ -88,10 +100,11 @@ DUKA_ONE_TIMING = Timing(read_back_after=1.0, offline_after=30.0)
 after it is sent, as the unit does not answer a command, so nothing says when it has carried it
 out; and the unit counts as not answering only after half a minute without an answer."""
 
-DUKA_ONE_BREAKER = CircuitBreaker(after=2, pause=Fixed(10.0))
+DUKA_ONE_BREAKER = CircuitBreaker(after=2, retry=Retry(Fixed(10.0)))
 """After two requests in a row left unanswered, each already sent `attempts` times, the unit is
-not asked for 10 s, then probed with one request: a pass over a silent unit fails at once rather
-than waiting out every request, and an answer is found within 10 s of the next poll."""
+not asked for 10 s, then probed with one request, and so on for as long as it stays silent: a pass
+over a silent unit fails at once rather than waiting out every request, and an answer is found
+within 10 s of the next poll."""
 
 
 def _whole(minimum: int, maximum: int) -> Limits:

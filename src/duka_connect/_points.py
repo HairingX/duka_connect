@@ -1,10 +1,10 @@
 """What a point is: a parameter of the unit, and how its bytes become a value."""
 from collections.abc import Callable
-from dataclasses import KW_ONLY, dataclass
+from dataclasses import dataclass
 from datetime import date, time
 from enum import IntEnum
 
-from event_connect import Certainty, InvalidValueError, is_instance
+from event_connect import InvalidValueError, is_instance
 from event_connect import Point as BasePoint
 
 
@@ -24,8 +24,6 @@ class Point[T](BasePoint[T]):
     size: int
     decode: Callable[[bytes], T] | None
     encode: Callable[[T], bytes] | None = None
-    _: KW_ONLY
-    certainty: Certainty = Certainty.REPORTED
 
     @property
     def readable(self) -> bool:

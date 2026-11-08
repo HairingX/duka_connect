@@ -1,15 +1,9 @@
 """The packet format, checked byte by byte."""
 import pytest
 
-from duka_connect._protocol import (
-    Function,
-    ProtocolError,
-    checksum,
-    decode_request,
-    decode_response,
-    encode_request,
-    encode_response,
-)
+import duka_connect._protocol
+from duka_connect._protocol import Function, ProtocolError, checksum, decode_response, encode_request
+from duka_connect.testing._protocol import decode_request, encode_response
 
 ID = "ABCDEFGHIJKLMNOP"
 
@@ -65,8 +59,9 @@ def test_a_changed_function_in_a_response_is_skipped() -> None:
         b"\xfd\xfc\x02\x01A\x00\x06\x01\x01\x00\x00",
         encode_response(ID, "", [(0x01, b"\x01")])[:-1] + b"\x00",
         encode_request(ID, "", Function.READ, [(0x01, None)]),
+        b"\xfd\xfd\x03\x01A\x00\x06\x01\x01" + checksum(b"\xfd\xfd\x03\x01A\x00\x06\x01\x01"),
     ],
-    ids=["empty", "wrong header", "wrong checksum", "not a response"],
+    ids=["empty", "wrong header", "wrong checksum", "not a response", "unknown protocol type"],
 )
 def test_a_packet_that_is_not_a_response_is_refused(packet: bytes) -> None:
     with pytest.raises(ProtocolError):
@@ -84,6 +79,25 @@ def test_a_request_reads_back_as_it_was_built() -> None:
     request = decode_request(encode_request(ID, "pw", Function.WRITE_READ, parameters), {})
     assert (request.device_id, request.password, request.function) == (ID, "pw", Function.WRITE_READ)
     assert list(request.parameters) == parameters
+
+
+def test_a_packet_without_a_function_is_refused() -> None:
+    body = b"\xfd\xfd\x02\x01A\x00"
+    with pytest.raises(ProtocolError, match="no function"):
+        decode_response(body + checksum(body))
+
+
+@pytest.mark.parametrize("function", [0x04, 0x05], ids=["increase", "decrease"])
+def test_a_simulated_unit_reads_only_the_functions_the_client_sends(function: int) -> None:
+    body = b"\xfd\xfd\x02\x01A\x00" + bytes([function, 0x02])
+    with pytest.raises(ProtocolError, match="Unknown function"):
+        decode_request(body + checksum(body), {})
+
+
+def test_the_client_holds_none_of_the_simulated_units_side_of_the_protocol() -> None:
+    for name in ("encode_response", "decode_request", "Request"):
+        assert not hasattr(duka_connect._protocol, name), name
+    assert {function.name for function in Function} == {"READ", "WRITE", "WRITE_READ", "RESPONSE"}
 
 
 def test_a_parameter_number_above_0xffff_is_refused() -> None:
