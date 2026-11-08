@@ -32,6 +32,7 @@ from event_connect import (
     changed,
     select,
     selector,
+    should_poll,
     stale,
     tell,
 )
@@ -99,6 +100,8 @@ class Client:
         self._breaker: Breaker = breaker.breaker()
         self._scheduler = timing.scheduler(self._clock)
         self._scheduler.set_points(self._readable)
+        for point in self._readable:
+            self._update_polling(point.key)
         self._statuses = StatusBoard(self._clock)
         self._requests = 0
         self._unanswered_requests = 0
@@ -254,7 +257,7 @@ class Client:
 
     def _update_polling(self, key: str) -> None:
         if key in self._scheduled_keys:
-            self._scheduler.set_polled(key, key in self._polled_keys or self._subscriptions.polled(key))
+            self._scheduler.set_polled(key, should_poll(self._points[key], self._subscriptions, self._polled_keys))
 
     # =============================================================================== reading
 
@@ -374,8 +377,7 @@ class Client:
             point = self._writable_point(write.key)
             encoded = point.to_bytes(write.value)
             (commands if point.write_kind is WriteKind.COMMAND else settings).append((point, encoded))
-        self._statuses.set(Status.WRITE_PENDING, True)
-        try:
+        with self._statuses.holding(Status.WRITE_PENDING):
             taken = True
             if settings:
                 taken = await self._write_settings(settings)
@@ -388,8 +390,6 @@ class Client:
                 for point, _ in commands:
                     self._written(point)
             return taken
-        finally:
-            self._statuses.set(Status.WRITE_PENDING, False)
 
     async def _write_settings(self, settings: list[tuple[Point[Any], bytes]]) -> bool:
         packet = encode_request(
