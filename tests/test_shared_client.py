@@ -5,7 +5,6 @@ from collections.abc import Callable
 
 import pytest
 
-import duka_connect._client
 from conftest import make_client
 from duka_connect import (
     DUKA_ONE,
@@ -172,71 +171,96 @@ async def _until(condition: Callable[[], bool]) -> None:
             await asyncio.sleep(0.01)
 
 
-async def test_running_reads_what_is_due(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
-    client.subscribe(PointKey.HUMIDITY, lambda _key, _old, _new: None)
-    unit.values[0x25] = bytes([60])
-    clock.advance(30)
-    running = asyncio.create_task(client.run())
-    try:
-        await _until(lambda: client.values[PointKey.HUMIDITY].value == 60)
-    finally:
-        running.cancel()
+async def _cancel(running: asyncio.Task[None]) -> None:
+    running.cancel()
     with pytest.raises(asyncio.CancelledError):
         await running
 
 
-async def test_running_wakes_when_something_becomes_due(
+async def test_running_reads_what_is_due(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
+    client.subscribe(PointKey.HUMIDITY, lambda _key, _old, _new: None)
+    unit.values[0x25] = bytes([60])
+    running = asyncio.create_task(client.run())
+    await _until(lambda: len(clock.sleeps) == 1)
+    await asyncio.sleep(0.05)
+    assert clock.sleeps == [10.0] and client.values[PointKey.HUMIDITY].value != 60
+    clock.advance(30)                                         # humidity is MEDIUM: 30 s
+    await _until(lambda: client.values[PointKey.HUMIDITY].value == 60)
+    await _cancel(running)
+
+
+async def test_running_is_woken_when_something_becomes_due_sooner(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    running = asyncio.create_task(client.run())
+    await _until(lambda: len(clock.sleeps) == 1)
+    assert clock.sleeps[0] > 2.0
+    await client.refresh([PointKey.HUMIDITY], after=2.0)
+    await _until(lambda: len(clock.sleeps) == 2)
+    assert clock.sleeps[1] == 2.0
+    unit.requests.clear()
+    clock.advance(2.0)
+    await _until(lambda: bool(unit.requests))
+    await _cancel(running)
+
+
+async def test_running_is_woken_when_scheduled_polling_is_turned_on(
     client: Client, unit: SimulatedDuka, clock: FakeClock
 ) -> None:
     client.set_scheduled_polling(False)
     running = asyncio.create_task(client.run())
     await asyncio.sleep(0.05)
+    assert clock.sleeps == []
     unit.requests.clear()
     clock.advance(30)
     client.set_scheduled_polling(True)
-    try:
-        await _until(lambda: bool(unit.requests))
-    finally:
-        running.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await running
+    await _until(lambda: bool(unit.requests))
+    await _cancel(running)
 
 
-async def test_running_before_connecting_raises(unit: SimulatedDuka, clock: FakeClock) -> None:
-    with pytest.raises(NotConnectedError):
-        await make_client(unit, clock).run()
-
-
-async def test_running_ends_when_the_client_is_disconnected(unit: SimulatedDuka, clock: FakeClock) -> None:
+async def test_running_waits_while_the_client_is_not_connected(unit: SimulatedDuka, clock: FakeClock) -> None:
     client = make_client(unit, clock)
-    await client.connect()
-    client.set_scheduled_polling(False)
     running = asyncio.create_task(client.run())
     await asyncio.sleep(0.05)
+    assert unit.requests == [] and clock.sleeps == []
+    await client.connect()
+    await _until(lambda: len(clock.sleeps) == 1)
     await client.disconnect()
-    with pytest.raises(NotConnectedError):
-        async with asyncio.timeout(2):
-            await running
+    unit.requests.clear()
+    clock.advance(3600)
+    await asyncio.sleep(0.05)
+    assert unit.requests == [] and not running.done()
+    await client.connect()
+    await _until(lambda: len(clock.sleeps) == 2)
+    unit.requests.clear()
+    clock.advance(clock.sleeps[-1])
+    await _until(lambda: bool(unit.requests))
+    await _cancel(running)
 
 
-async def test_a_poll_that_raises_is_logged_and_running_goes_on(
-    client: Client, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+async def test_a_poll_that_raises_is_logged_once_and_running_goes_on(
+    client: Client, clock: FakeClock, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     polls = 0
+    poll = client.poll
 
-    async def raising() -> None:
+    async def failing_three_times() -> None:
         nonlocal polls
         polls += 1
-        raise RuntimeError("poll")
+        if polls <= 3:
+            raise RuntimeError("poll")
+        await poll()
 
-    monkeypatch.setattr(duka_connect._client, "_PAUSE_AFTER_FAILURE", 0.01)
-    monkeypatch.setattr(client, "poll", raising)
-    with caplog.at_level(logging.ERROR):
+    monkeypatch.setattr(client, "poll", failing_three_times)
+    with caplog.at_level(logging.DEBUG, logger="duka_connect"):
         running = asyncio.create_task(client.run())
-        try:
-            await _until(lambda: polls >= 2)
-        finally:
-            running.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await running
-    assert "The Duka One could not be polled" in caplog.text
+        for slept in range(1, 4):
+            await _until(lambda: len(clock.sleeps) == slept)
+            clock.advance(clock.sleeps[-1])
+        await _until(lambda: len(clock.sleeps) == 4)
+        await _cancel(running)
+    assert polls == 4 and clock.sleeps[:3] == [1.0, 1.0, 1.0] and clock.sleeps[3] > 1.0
+    failures = [r for r in caplog.records if "could not be polled" in r.getMessage()]
+    assert [(r.levelno, r.exc_info is not None) for r in failures] == [
+        (logging.ERROR, True), (logging.DEBUG, False), (logging.DEBUG, False)]
+    assert [r.levelno for r in caplog.records if "is polled again" in r.getMessage()] == [logging.INFO]

@@ -6,7 +6,6 @@ to reach a new speed, and an `after` and `until_stable` that would follow them.
 """
 import asyncio
 import os
-from collections.abc import Awaitable, Callable
 
 from event_connect import SystemClock
 
@@ -25,10 +24,10 @@ async def measure_fan_settling(
     limit: float,
     tolerance: float,
     clock: Clock,
-    sleep: Callable[[float], Awaitable[None]],
 ) -> tuple[Settling, ...]:
     """Change the speed from the first of `speeds` to the second and back, and read the fan's speed
-    every `every` seconds after each change until it settles, for at most `limit` seconds.
+    every `every` seconds of `clock` after each change until it settles, for at most `limit`
+    seconds.
 
     The unit runs at the first speed before it is measured, and at the speed it had before once it
     has been, whatever happens.
@@ -43,10 +42,10 @@ async def measure_fan_settling(
     original = client.value(PointKey.SPEED)
     first, second = speeds
     try:
-        await _settle(client, first, every, limit, tolerance, clock, sleep)
+        await _settle(client, first, every, limit, tolerance, clock)
         return (
-            await _settle(client, second, every, limit, tolerance, clock, sleep, f"{first.name} to {second.name}"),
-            await _settle(client, first, every, limit, tolerance, clock, sleep, f"{second.name} to {first.name}"),
+            await _settle(client, second, every, limit, tolerance, clock, f"{first.name} to {second.name}"),
+            await _settle(client, first, every, limit, tolerance, clock, f"{second.name} to {first.name}"),
         )
     finally:
         if original is not None and original.value is not None:
@@ -55,14 +54,14 @@ async def measure_fan_settling(
 
 async def _settle(
     client: Client, speed: Speed, every: float, limit: float, tolerance: float, clock: Clock,
-    sleep: Callable[[float], Awaitable[None]], change: str = "",
+    change: str = "",
 ) -> Settling:
     if not await client.write(PointKey.SPEED, speed):
         raise CannotConnectError(f"The unit did not take the speed {speed.name}")
     started = clock.monotonic()
     readings: list[tuple[float, float]] = []
     while clock.monotonic() - started < limit:
-        await sleep(every)
+        await clock.sleep(every)
         await client.refresh([PointKey.FAN_RPM])
         rpm = client.value(PointKey.FAN_RPM)
         if rpm is not None and rpm.is_good and rpm.value is not None:
@@ -85,8 +84,7 @@ async def main() -> None:
         print(await measure_latency(client, requests=20, clock=clock))
         every = 0.5
         settlings = await measure_fan_settling(
-            client, speeds=(Speed.LOW, Speed.HIGH), every=every, limit=60.0, tolerance=20.0,
-            clock=clock, sleep=asyncio.sleep,
+            client, speeds=(Speed.LOW, Speed.HIGH), every=every, limit=60.0, tolerance=20.0, clock=clock,
         )
         for settling in settlings:
             print(settling)

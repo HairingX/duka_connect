@@ -51,9 +51,13 @@ asyncio.run(main())
 ```
 
 `run()` sleeps until something is due, and wakes at once when a subscription, a write or a
-`refresh()` makes something due sooner; a poll that raises is logged and polling goes on. To run
-your own loop instead, call `poll()`, which reads only what is due - nothing when nothing is - and
-`seconds_until_next_poll()`, which says when to call it again.
+`refresh()` makes something due sooner. It never ends by itself: while the client is not
+connected - before `connect()`, or after `disconnect()` - it waits until it is, and a poll that
+raises is logged, the first of a run of failures as an error with its traceback, and polling goes
+on after a pause. It sleeps on the client's clock: a test that gives the client a `FakeClock`
+moves it on with `clock.advance()`. To run your own loop instead, call `poll()`, which reads only
+what is due - nothing when nothing is - and `seconds_until_next_poll()`, which says when to call it
+again.
 
 `await discover()` lists the units that answer a broadcast on the local network, and
 `discover(target="192.0.2.10")` asks one address; each `DiscoveredDevice` has the `host` and
@@ -61,10 +65,10 @@ your own loop instead, call `poll()`, which reads only what is due - nothing whe
 
 ### The unit
 
-`client.model` is `DUKA_ONE`, with its `name`, `manufacturer`, `points` and how it is read;
-`client.identity` is what the unit reports about itself, `{"unit_type": ...}`. `client.points`,
-`has(key)`, `can_read(key)`, `can_write(key)` and `select(keys or labels)` tell what the unit has:
-every point of the model. The client is a `DeviceClient`, used as the clients of the other
+`client.model` is `DUKA_ONE`, a `DukaModel`, with its `name`, `manufacturer`, `points` and how it
+is read; `client.identity` is what the unit reports about itself, `{"unit_type": ...}`.
+`client.points`, `has(key)`, `can_read(key)`, `can_write(key)` and `select(keys or labels)` tell
+what the unit has: every point of the model. The client is a `DeviceClient`, used as the clients of the other
 device libraries built on `event_connect` are.
 
 `poll()`, `refresh()` and `write()` raise `NotConnectedError` until `connect()`, and again from

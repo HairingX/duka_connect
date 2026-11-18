@@ -58,3 +58,8 @@ def test_every_number_that_can_be_written_says_its_range_and_its_encoding_carrie
         assert write_range is not None and write_range.step == 1, point.key
         for value in (int(write_range.min), int(write_range.max)):
             assert point.to_value(point.to_bytes(value)) == value, (point.key, value)
+
+
+def test_it_passes_on_the_type_of_its_model() -> None:
+    assert "DukaModel" in duka_connect.__all__
+    assert isinstance(duka_connect.DUKA_ONE, duka_connect.DukaModel)
