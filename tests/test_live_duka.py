@@ -7,7 +7,7 @@ import os
 
 import pytest
 
-from duka_connect import DEFAULT_PASSWORD, Client, Quality
+from duka_connect import DEFAULT_PASSWORD, Quality, create_client
 
 pytestmark = pytest.mark.live
 
@@ -18,10 +18,12 @@ DEVICE_ID = os.environ.get("DUKA_DEVICE_ID")
 @pytest.mark.skipif(not HOST or not DEVICE_ID, reason="DUKA_HOST and DUKA_DEVICE_ID are not set")
 async def test_every_point_of_a_real_unit_is_read() -> None:
     assert HOST and DEVICE_ID
-    client = Client(HOST, DEVICE_ID, os.environ.get("DUKA_PASSWORD", DEFAULT_PASSWORD))
+    client = create_client(
+        host=HOST, device_id=DEVICE_ID, password=os.environ.get("DUKA_PASSWORD", DEFAULT_PASSWORD), read_only=True
+    )
     await client.connect()
     try:
-        print(f"\nUnit type: {client.unit_type}")
+        print(f"\nUnit type: {client.identity['unit_type']}")
         for name, point in client.points.items():
             if not point.readable:
                 continue

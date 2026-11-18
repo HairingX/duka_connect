@@ -1,8 +1,16 @@
 """The Duka One's points."""
 from datetime import date, time
-from typing import Any
 
-from event_connect import Certainty, CircuitBreaker, Fixed, Key, Limits, PollRate, Refresh, Timing, Unit, WriteKind
+from event_connect import (
+    Certainty,
+    Key,
+    Limits,
+    PollRate,
+    Refresh,
+    Unit,
+    WriteKind,
+)
+from ._model import DukaModel
 from ._points import (
     Point,
     command_encoder,
@@ -80,160 +88,166 @@ class PointKey:
 
 _FANS = (PointKey.FAN_RPM, PointKey.FAN2_RPM)
 
-_FANS_SETTLE = Refresh(_FANS, after=3.0, until_stable=30.0)
+_FANS_SETTLE = Refresh(_FANS, after=3.0, until_stable=30.0)  # guess; how fast the fans settle can be measured
 """The fans' speeds, read until they settle: a fan takes some seconds to reach a new speed."""
-
-DUKA_ONE_TIMING = Timing(read_back_after=1.0, offline_after=30.0)
-"""How a Duka One is read: the default poll intervals; what a command changed is read a second
-after it is sent, as the unit does not answer a command, so nothing says when it has carried it
-out; and the unit counts as not answering only after half a minute without an answer."""
-
-DUKA_ONE_BREAKER = CircuitBreaker(after=2, pause=Fixed(10.0))
-"""After two requests in a row left unanswered, each already sent `attempts` times, the unit is
-not asked for 10 s, then probed with one request: a pass over a silent unit fails at once rather
-than waiting out every request, and an answer is found within 10 s of the next poll."""
 
 
 def _whole(minimum: int, maximum: int) -> Limits:
     return Limits(minimum, maximum, step=1)
 
 
-DUKA_ONE: tuple[Point[Any], ...] = (
-    Point(
-        PointKey.POWER, 0x01, 1, decode_bool, encode_bool, poll_rate=PollRate.FAST,
-        on_change=Refresh((*_FANS, PointKey.BOOST), after=3.0, until_stable=30.0),
-    ),
-    Point(
-        PointKey.SPEED, 0x02, 1, state_decoder(Speed), encode_state, poll_rate=PollRate.FAST,
-        on_change=_FANS_SETTLE,
-    ),
-    Point(
-        PointKey.BOOST, 0x06, 1, decode_bool, poll_rate=PollRate.FAST,
-        on_change=Refresh(
-            (*_FANS, PointKey.HUMIDITY, PointKey.HUMIDITY_OVER_THRESHOLD), after=3.0, until_stable=30.0,
-        ),
-    ),
-    Point(
-        PointKey.TIMER_MODE, 0x07, 1, state_decoder(TimerMode), encode_state, poll_rate=PollRate.FAST,
-        on_change=Refresh((PointKey.TIMER_COUNTDOWN, *_FANS), after=3.0, until_stable=30.0),
-    ),
-    Point(PointKey.TIMER_COUNTDOWN, 0x0B, 3, decode_seconds_minutes_hours, unit=Unit.SECONDS),
-    Point(
-        PointKey.HUMIDITY_SENSOR_ENABLED, 0x0F, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW,
-        on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST), after=1.0),
-    ),
-    Point(
-        PointKey.HUMIDITY_THRESHOLD, 0x19, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
-        unit=Unit.PERCENT, limits=_whole(40, 80),
-        on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST), after=1.0),
-    ),
-    Point(
-        PointKey.RTC_BATTERY_VOLTAGE, 0x24, 2, decode_int, poll_rate=PollRate.RARE, unit=Unit.MILLIVOLT,
-        deadband=10, certainty=Certainty.VERIFIED,
-    ),
-    Point(
-        PointKey.HUMIDITY, 0x25, 1, decode_int, unit=Unit.PERCENT,
-        on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST)),
-    ),
-    Point(
-        PointKey.MANUAL_SPEED, 0x44, 1, decode_int, int_encoder(1), poll_rate=PollRate.FAST,
-        limits=_whole(0, 255), on_change=_FANS_SETTLE,
-    ),
-    Point(PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
-    Point(
-        PointKey.FILTER_TIMER, 0x64, 3, decode_minutes_hours_days, poll_rate=PollRate.RARE,
-        unit=Unit.MINUTES,
-    ),
-    Point(
-        PointKey.RESET_FILTER_TIMER, 0x65, 1, None, command_encoder(b"\x00"),
-        write_kind=WriteKind.COMMAND,
-        on_write=Refresh((PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE, PointKey.ALARM)),
-    ),
-    Point(
-        PointKey.BOOST_OFF_DELAY, 0x66, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
-        unit=Unit.MINUTES, limits=_whole(0, 60),
-    ),
-    Point(
-        PointKey.OPERATING_TIME, 0x7E, 4, decode_operating_minutes, poll_rate=PollRate.RARE,
-        unit=Unit.MINUTES,
-    ),
-    Point(
-        PointKey.RESET_ALARMS, 0x80, 1, None, command_encoder(b"\x00"),
-        write_kind=WriteKind.COMMAND,
-        on_write=Refresh((PointKey.ALARM, PointKey.FILTER_REPLACE)),
-    ),
-    Point(
-        PointKey.ALARM, 0x83, 1, state_decoder(AlarmLevel), poll_rate=PollRate.SLOW,
-        on_change=Refresh(
-            (PointKey.RTC_BATTERY_VOLTAGE, PointKey.FILTER_REPLACE, PointKey.FILTER_TIMER),
-            after=10.0, until_stable=120.0,
-        ),
-    ),
-    Point(PointKey.FIRMWARE_VERSION, 0x86, 6, decode_firmware_version, poll_rate=PollRate.STATIC),
-    Point(PointKey.FIRMWARE_DATE, 0x86, 6, decode_firmware_date, poll_rate=PollRate.STATIC),
-    Point(
-        PointKey.FILTER_REPLACE, 0x88, 1, decode_bool, poll_rate=PollRate.SLOW,
-        on_change=Refresh((PointKey.FILTER_TIMER, PointKey.ALARM)),
-    ),
-    Point(
-        PointKey.VENTILATION_MODE, 0xB7, 1, state_decoder(VentilationMode), encode_state,
-        poll_rate=PollRate.FAST,
-    ),
-    Point(PointKey.UNIT_TYPE, 0xB9, 2, decode_int, poll_rate=PollRate.STATIC),
-    Point(PointKey.RELAY_SENSOR_ENABLED, 0x14, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
-    Point(PointKey.ANALOG_SENSOR_ENABLED, 0x16, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
-    Point(
-        PointKey.ANALOG_SENSOR_LEVEL, 0x2D, 1, decode_int, unit=Unit.PERCENT,
-        on_change=Refresh((PointKey.ANALOG_SENSOR_OVER_THRESHOLD,)),
-    ),
-    Point(PointKey.RELAY_SENSOR_ACTIVE, 0x32, 1, decode_bool),
-    *(
+DUKA_ONE = DukaModel(
+    name="Duka One",
+    manufacturer="Duka",
+    poll_intervals={
+        PollRate.FAST: 10.0,  # guess
+        PollRate.MEDIUM: 30.0,  # guess
+        PollRate.SLOW: 60.0,  # guess
+        PollRate.RARE: 900.0,  # guess
+    },
+    read_back_after=1.0,  # guess; reading what a command changes every 0.1 s after it would measure it
+    answers_within=1.0,  # guess; measure_latency measures it
+    points=(
         Point(
-            key, parameter, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
-            limits=_whole(10, 255),
-        )
-        for key, parameter in (
-            (PointKey.SUPPLY_SPEED_1, 0x3A),
-            (PointKey.EXHAUST_SPEED_1, 0x3B),
-            (PointKey.SUPPLY_SPEED_2, 0x3C),
-            (PointKey.EXHAUST_SPEED_2, 0x3D),
-            (PointKey.SUPPLY_SPEED_3, 0x3E),
-            (PointKey.EXHAUST_SPEED_3, 0x3F),
-        )
-    ),
-    Point(PointKey.FAN2_RPM, 0x4B, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
-    Point(
-        PointKey.FILTER_INTERVAL, 0x63, 2, decode_int, int_encoder(2), poll_rate=PollRate.RARE,
-        unit=Unit.DAYS, limits=_whole(70, 365),
-        on_change=Refresh((PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE), after=1.0),
-    ),
-    Point(PointKey.CLOCK_TIME, 0x6F, 3, decode_clock_time, encode_clock_time, poll_rate=PollRate.RARE),
-    Point(PointKey.CLOCK_DATE, 0x70, 4, decode_clock_date, encode_clock_date, poll_rate=PollRate.RARE),
-    Point(PointKey.WEEKLY_SCHEDULE, 0x72, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
-    Point(PointKey.CLOUD_ENABLED, 0x85, 1, decode_bool, encode_bool, poll_rate=PollRate.RARE),
-    Point(PointKey.IP_ADDRESS, 0xA3, 4, decode_ipv4, poll_rate=PollRate.RARE),
-    Point(
-        PointKey.ANALOG_SENSOR_THRESHOLD, 0xB8, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
-        unit=Unit.PERCENT, limits=_whole(5, 100),
-        on_change=Refresh((PointKey.ANALOG_SENSOR_OVER_THRESHOLD,), after=1.0),
-    ),
-    Point(
-        PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, None, command_encoder(b"\x01"),
-        write_kind=WriteKind.COMMAND,
-        on_write=Refresh((
-            PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
-            PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,
-            PointKey.SUPPLY_SPEED_3, PointKey.EXHAUST_SPEED_3,
-        )),
-    ),
-    *(
+            PointKey.POWER, 0x01, 1, decode_bool, encode_bool, poll_rate=PollRate.FAST,
+            on_change=Refresh((*_FANS, PointKey.BOOST), after=3.0, until_stable=30.0),  # guess
+        ),
         Point(
-            key, parameter, 2, decode_minutes_hours, encode_minutes_hours, poll_rate=PollRate.SLOW,
-            unit=Unit.MINUTES, limits=_whole(0, 23 * 60 + 59),
-        )
-        for key, parameter in ((PointKey.REDUCED_DURATION, 0x0302), (PointKey.BOOST_DURATION, 0x0303))
+            PointKey.SPEED, 0x02, 1, state_decoder(Speed), encode_state, poll_rate=PollRate.FAST,
+            on_change=_FANS_SETTLE,
+        ),
+        Point(
+            PointKey.BOOST, 0x06, 1, decode_bool, poll_rate=PollRate.FAST,
+            on_change=Refresh(
+                (*_FANS, PointKey.HUMIDITY, PointKey.HUMIDITY_OVER_THRESHOLD), after=3.0, until_stable=30.0,  # guess
+            ),
+        ),
+        Point(
+            PointKey.TIMER_MODE, 0x07, 1, state_decoder(TimerMode), encode_state, poll_rate=PollRate.FAST,
+            on_change=Refresh((PointKey.TIMER_COUNTDOWN, *_FANS), after=3.0, until_stable=30.0),  # guess
+        ),
+        Point(
+            PointKey.TIMER_COUNTDOWN, 0x0B, 3, decode_seconds_minutes_hours, poll_rate=PollRate.MEDIUM,
+            unit=Unit.SECONDS,
+        ),
+        Point(
+            PointKey.HUMIDITY_SENSOR_ENABLED, 0x0F, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW,
+            on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST), after=1.0),  # guess
+        ),
+        Point(
+            PointKey.HUMIDITY_THRESHOLD, 0x19, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
+            unit=Unit.PERCENT, limits=_whole(40, 80),
+            on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST), after=1.0),  # guess
+        ),
+        Point(
+            PointKey.RTC_BATTERY_VOLTAGE, 0x24, 2, decode_int, poll_rate=PollRate.RARE, unit=Unit.MILLIVOLT,
+            deadband=10, certainty=Certainty.VERIFIED,
+        ),
+        Point(
+            PointKey.HUMIDITY, 0x25, 1, decode_int, poll_rate=PollRate.MEDIUM, unit=Unit.PERCENT,
+            on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST)),
+        ),
+        Point(
+            PointKey.MANUAL_SPEED, 0x44, 1, decode_int, int_encoder(1), poll_rate=PollRate.FAST,
+            limits=_whole(0, 255), on_change=_FANS_SETTLE,
+        ),
+        Point(PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
+        Point(
+            PointKey.FILTER_TIMER, 0x64, 3, decode_minutes_hours_days, poll_rate=PollRate.RARE,
+            unit=Unit.MINUTES,
+        ),
+        Point(
+            PointKey.RESET_FILTER_TIMER, 0x65, 1, None, command_encoder(b"\x00"),
+            write_kind=WriteKind.COMMAND,
+            on_write=Refresh((PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE, PointKey.ALARM)),
+        ),
+        Point(
+            PointKey.BOOST_OFF_DELAY, 0x66, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
+            unit=Unit.MINUTES, limits=_whole(0, 60),
+        ),
+        Point(
+            PointKey.OPERATING_TIME, 0x7E, 4, decode_operating_minutes, poll_rate=PollRate.RARE,
+            unit=Unit.MINUTES,
+        ),
+        Point(
+            PointKey.RESET_ALARMS, 0x80, 1, None, command_encoder(b"\x00"),
+            write_kind=WriteKind.COMMAND,
+            on_write=Refresh((PointKey.ALARM, PointKey.FILTER_REPLACE)),
+        ),
+        Point(
+            PointKey.ALARM, 0x83, 1, state_decoder(AlarmLevel), poll_rate=PollRate.SLOW,
+            on_change=Refresh(
+                (PointKey.RTC_BATTERY_VOLTAGE, PointKey.FILTER_REPLACE, PointKey.FILTER_TIMER),
+                after=10.0, until_stable=120.0,  # guess
+            ),
+        ),
+        Point(PointKey.FIRMWARE_VERSION, 0x86, 6, decode_firmware_version, poll_rate=PollRate.STATIC),
+        Point(PointKey.FIRMWARE_DATE, 0x86, 6, decode_firmware_date, poll_rate=PollRate.STATIC),
+        Point(
+            PointKey.FILTER_REPLACE, 0x88, 1, decode_bool, poll_rate=PollRate.SLOW,
+            on_change=Refresh((PointKey.FILTER_TIMER, PointKey.ALARM)),
+        ),
+        Point(
+            PointKey.VENTILATION_MODE, 0xB7, 1, state_decoder(VentilationMode), encode_state,
+            poll_rate=PollRate.FAST,
+        ),
+        Point(PointKey.UNIT_TYPE, 0xB9, 2, decode_int, poll_rate=PollRate.STATIC),
+        Point(PointKey.RELAY_SENSOR_ENABLED, 0x14, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
+        Point(PointKey.ANALOG_SENSOR_ENABLED, 0x16, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
+        Point(
+            PointKey.ANALOG_SENSOR_LEVEL, 0x2D, 1, decode_int, poll_rate=PollRate.MEDIUM, unit=Unit.PERCENT,
+            on_change=Refresh((PointKey.ANALOG_SENSOR_OVER_THRESHOLD,)),
+        ),
+        Point(PointKey.RELAY_SENSOR_ACTIVE, 0x32, 1, decode_bool, poll_rate=PollRate.MEDIUM),
+        *(
+            Point(
+                key, parameter, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
+                limits=_whole(10, 255),
+            )
+            for key, parameter in (
+                (PointKey.SUPPLY_SPEED_1, 0x3A),
+                (PointKey.EXHAUST_SPEED_1, 0x3B),
+                (PointKey.SUPPLY_SPEED_2, 0x3C),
+                (PointKey.EXHAUST_SPEED_2, 0x3D),
+                (PointKey.SUPPLY_SPEED_3, 0x3E),
+                (PointKey.EXHAUST_SPEED_3, 0x3F),
+            )
+        ),
+        Point(PointKey.FAN2_RPM, 0x4B, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
+        Point(
+            PointKey.FILTER_INTERVAL, 0x63, 2, decode_int, int_encoder(2), poll_rate=PollRate.RARE,
+            unit=Unit.DAYS, limits=_whole(70, 365),
+            on_change=Refresh((PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE), after=1.0),  # guess
+        ),
+        Point(PointKey.CLOCK_TIME, 0x6F, 3, decode_clock_time, encode_clock_time, poll_rate=PollRate.RARE),
+        Point(PointKey.CLOCK_DATE, 0x70, 4, decode_clock_date, encode_clock_date, poll_rate=PollRate.RARE),
+        Point(PointKey.WEEKLY_SCHEDULE, 0x72, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
+        Point(PointKey.CLOUD_ENABLED, 0x85, 1, decode_bool, encode_bool, poll_rate=PollRate.RARE),
+        Point(PointKey.IP_ADDRESS, 0xA3, 4, decode_ipv4, poll_rate=PollRate.RARE),
+        Point(
+            PointKey.ANALOG_SENSOR_THRESHOLD, 0xB8, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
+            unit=Unit.PERCENT, limits=_whole(5, 100),
+            on_change=Refresh((PointKey.ANALOG_SENSOR_OVER_THRESHOLD,), after=1.0),  # guess
+        ),
+        Point(
+            PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, None, command_encoder(b"\x01"),
+            write_kind=WriteKind.COMMAND,
+            on_write=Refresh((
+                PointKey.SUPPLY_SPEED_1, PointKey.EXHAUST_SPEED_1,
+                PointKey.SUPPLY_SPEED_2, PointKey.EXHAUST_SPEED_2,
+                PointKey.SUPPLY_SPEED_3, PointKey.EXHAUST_SPEED_3,
+            )),
+        ),
+        *(
+            Point(
+                key, parameter, 2, decode_minutes_hours, encode_minutes_hours, poll_rate=PollRate.SLOW,
+                unit=Unit.MINUTES, limits=_whole(0, 23 * 60 + 59),
+            )
+            for key, parameter in ((PointKey.REDUCED_DURATION, 0x0302), (PointKey.BOOST_DURATION, 0x0303))
+        ),
+        Point(PointKey.HUMIDITY_OVER_THRESHOLD, 0x0304, 1, decode_bool, poll_rate=PollRate.MEDIUM),
+        Point(PointKey.ANALOG_SENSOR_OVER_THRESHOLD, 0x0305, 1, decode_bool, poll_rate=PollRate.MEDIUM),
     ),
-    Point(PointKey.HUMIDITY_OVER_THRESHOLD, 0x0304, 1, decode_bool),
-    Point(PointKey.ANALOG_SENSOR_OVER_THRESHOLD, 0x0305, 1, decode_bool),
 )
-"""Every point a Duka One has."""
+"""A Duka One. A command is not answered, so nothing says when the unit has carried it out:
+what it changed is read `read_back_after` seconds after it is sent."""

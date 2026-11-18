@@ -5,80 +5,87 @@ discovery. A simulated unit for tests is in `duka_connect.testing`.
 """
 from importlib.metadata import version as _installed_version
 
-from ._client import DEFAULT_PASSWORD, Client
-from ._discovery import DiscoveredDevice, discover
-from ._duka_one import DUKA_ONE, DUKA_ONE_BREAKER, DUKA_ONE_TIMING, PointKey
 from event_connect import (
-    CircuitBreaker,
+    AuthenticationError,
     CannotConnectError,
     Certainty,
     Change,
     ClientError,
     Clock,
     DataValue,
+    DeviceClient,
+    Identity,
     InvalidValueError,
     Key,
     Labels,
     Limits,
+    ModelError,
     NotConnectedError,
+    PointsCallback,
     PollRate,
     Quality,
     ReadOnlyError,
-    Refresh,
+    Selector,
     Status,
     StatusCallback,
-    SystemClock,
-    Timing,
     Unit,
     UnsupportedDeviceError,
     ValueCallback,
     Write,
     WriteKind,
+    WriteRange,
 )
+
+from ._client import DEFAULT_PASSWORD, Client
+from ._duka import DiscoveredDevice, create_client, discover
+from ._duka_one import DUKA_ONE, PointKey
+from ._model import DukaModel
 from ._points import Point
-from ._protocol import PORT, ProtocolError
+from ._protocol import PORT
 from ._states import AlarmLevel, Speed, TimerMode, VentilationMode
 
 __version__ = _installed_version("duka_connect")
 __all__ = [
     "DEFAULT_PASSWORD",
     "DUKA_ONE",
-    "DUKA_ONE_BREAKER",
-    "DUKA_ONE_TIMING",
     "PORT",
     "AlarmLevel",
+    "AuthenticationError",
     "CannotConnectError",
     "Certainty",
     "Change",
-    "CircuitBreaker",
     "Client",
     "ClientError",
     "Clock",
     "DataValue",
+    "DeviceClient",
     "DiscoveredDevice",
+    "DukaModel",
+    "Identity",
     "InvalidValueError",
     "Key",
     "Labels",
     "Limits",
+    "ModelError",
     "NotConnectedError",
     "Point",
     "PointKey",
+    "PointsCallback",
     "PollRate",
-    "ProtocolError",
     "Quality",
     "ReadOnlyError",
-    "Refresh",
+    "Selector",
     "Speed",
     "Status",
     "StatusCallback",
-    "SystemClock",
     "TimerMode",
-    "Timing",
     "Unit",
     "UnsupportedDeviceError",
     "ValueCallback",
     "VentilationMode",
     "Write",
     "WriteKind",
+    "WriteRange",
+    "create_client",
     "discover",
 ]

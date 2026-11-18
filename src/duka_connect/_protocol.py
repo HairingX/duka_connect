@@ -9,13 +9,24 @@ PORT = 4000
 SEARCH_DEVICE_ID = "DEFAULT_DEVICEID"
 """The device id every unit answers to, used by discovery."""
 
+DEVICE_ID_PARAMETER = 0x7C
+"""The parameter that holds the unit's device id, which discovery reads."""
+
 _HEADER = b"\xfd\xfd"
 _PROTOCOL_TYPE = 0x02
-_CHANGE_FUNCTION = 0xFC
-_UNSUPPORTED = 0xFD
-_VALUE_SIZE = 0xFE
-_PAGE = 0xFF
 _MAX_TEXT = 0xFF
+
+FUNCTION_MARKER = 0xFC
+"""In an answer, before a function: the function changes to it."""
+
+UNSUPPORTED_MARKER = 0xFD
+"""In an answer, before a parameter's low byte: the unit does not have the parameter."""
+
+SIZE_MARKER = 0xFE
+"""Before a size: the next parameter's value has that many bytes."""
+
+PAGE_MARKER = 0xFF
+"""Before a page: the parameters after it are on that page, until the next page marker."""
 
 
 class Function(IntEnum):
@@ -24,8 +35,6 @@ class Function(IntEnum):
     READ = 0x01
     WRITE = 0x02
     WRITE_READ = 0x03
-    INCREMENT_READ = 0x04
-    DECREMENT_READ = 0x05
     RESPONSE = 0x06
 
 
@@ -59,6 +68,49 @@ def _text(value: str, what: str) -> bytes:
     return bytes([len(encoded)]) + encoded
 
 
+def start_packet(device_id: str, password: str, function: Function) -> bytearray:
+    """Return a packet's start, up to and including its function, for its parameters to follow.
+
+    Raises:
+        ValueError: a device id or password longer than the protocol can carry.
+    """
+    body = bytearray(_HEADER)
+    body.append(_PROTOCOL_TYPE)
+    body += _text(device_id, "device id")
+    body += _text(password, "password")
+    body.append(function)
+    return body
+
+
+def end_packet(body: bytearray) -> bytes:
+    """Return the packet `body` with its checksum after it."""
+    return bytes(body) + checksum(bytes(body))
+
+
+def open_packet(packet: bytes) -> tuple[str, str, int, int]:
+    """Check a packet's frame, and read the device id and password it carries.
+
+    Returns:
+        The device id, the password, the position of the function, and the end of the
+        parameters, where the checksum starts.
+
+    Raises:
+        ProtocolError: the packet is not a valid Duka One packet.
+    """
+    if len(packet) < 8 or not packet.startswith(_HEADER):
+        raise ProtocolError("Not a Duka One packet")
+    if checksum(packet[:-2]) != packet[-2:]:
+        raise ProtocolError("Wrong checksum")
+    if packet[2] != _PROTOCOL_TYPE:
+        raise ProtocolError(f"Unknown protocol type 0x{packet[2]:02X}")
+    end = len(packet) - 2
+    device_id, pos = _read_text(packet, 3, end)
+    password, pos = _read_text(packet, pos, end)
+    if pos >= end:
+        raise ProtocolError("The packet has no function")
+    return device_id, password, pos, end
+
+
 def encode_request(
     device_id: str,
     password: str,
@@ -74,11 +126,7 @@ def encode_request(
     Raises:
         ValueError: a parameter number or value the protocol cannot carry.
     """
-    body = bytearray(_HEADER)
-    body.append(_PROTOCOL_TYPE)
-    body += _text(device_id, "device id")
-    body += _text(password, "password")
-    body.append(function)
+    body = start_packet(device_id, password, function)
     page = 0
     for number, value in parameters:
         if not 0 <= number <= 0xFFFF:
@@ -86,15 +134,15 @@ def encode_request(
         # The page is sticky: it holds for every parameter after it until the next one.
         if number >> 8 != page:
             page = number >> 8
-            body += bytes([_PAGE, page])
+            body += bytes([PAGE_MARKER, page])
         if value is not None and len(value) != 1:
             if not 0 < len(value) <= 0xFF:
                 raise ValueError(f"Parameter 0x{number:X} has a value of {len(value)} bytes")
-            body += bytes([_VALUE_SIZE, len(value)])
+            body += bytes([SIZE_MARKER, len(value)])
         body.append(number & 0xFF)
         if value is not None:
             body += value
-    return bytes(body) + checksum(bytes(body))
+    return end_packet(body)
 
 
 def decode_response(packet: bytes, sizes: Mapping[int, int] | None = None) -> Response:
@@ -108,36 +156,27 @@ def decode_response(packet: bytes, sizes: Mapping[int, int] | None = None) -> Re
         ProtocolError: the packet is not a valid response.
     """
     sizes = sizes or {}
-    if len(packet) < 8 or not packet.startswith(_HEADER):
-        raise ProtocolError("Not a Duka One packet")
-    if checksum(packet[:-2]) != packet[-2:]:
-        raise ProtocolError("Wrong checksum")
-    end = len(packet) - 2
+    device_id, password, pos, end = open_packet(packet)
+    if packet[pos] != Function.RESPONSE:
+        raise ProtocolError("Not a response")
+    pos += 1
     try:
-        if packet[2] != _PROTOCOL_TYPE:
-            raise ProtocolError(f"Unknown protocol type 0x{packet[2]:02X}")
-        pos = 3
-        device_id, pos = _read_text(packet, pos, end)
-        password, pos = _read_text(packet, pos, end)
-        if pos >= end or packet[pos] != Function.RESPONSE:
-            raise ProtocolError("Not a response")
-        pos += 1
         values: dict[int, bytes | None] = {}
         page = 0
         while pos < end:
             marker = packet[pos]
-            if marker == _CHANGE_FUNCTION:
+            if marker == FUNCTION_MARKER:
                 pos += 2
                 continue
-            if marker == _PAGE:
+            if marker == PAGE_MARKER:
                 page = packet[pos + 1]
                 pos += 2
                 continue
-            if marker == _UNSUPPORTED:
+            if marker == UNSUPPORTED_MARKER:
                 values[page << 8 | packet[pos + 1]] = None
                 pos += 2
                 continue
-            if marker == _VALUE_SIZE:
+            if marker == SIZE_MARKER:
                 size = packet[pos + 1]
                 pos += 2
                 number = page << 8 | packet[pos]
@@ -163,96 +202,3 @@ def _read_text(packet: bytes, pos: int, end: int) -> tuple[str, int]:
         return packet[start:start + size].decode("ascii"), start + size
     except UnicodeDecodeError as error:
         raise ProtocolError("A text is not ASCII") from error
-
-
-def encode_response(
-    device_id: str,
-    password: str,
-    values: Sequence[tuple[int, bytes | None]],
-) -> bytes:
-    """Build a response, as the unit does: a value of more than one byte carries its size.
-
-    Args:
-        values: each parameter number with its bytes, or `None` for one the unit does not have.
-    """
-    body = bytearray(_HEADER)
-    body.append(_PROTOCOL_TYPE)
-    body += _text(device_id, "device id")
-    body += _text(password, "password")
-    body.append(Function.RESPONSE)
-    page = 0
-    for number, value in values:
-        if number >> 8 != page:
-            page = number >> 8
-            body += bytes([_PAGE, page])
-        if value is None:
-            body += bytes([_UNSUPPORTED, number & 0xFF])
-            continue
-        if len(value) != 1:
-            body += bytes([_VALUE_SIZE, len(value)])
-        body.append(number & 0xFF)
-        body += value
-    return bytes(body) + checksum(bytes(body))
-
-
-@dataclass(frozen=True, slots=True)
-class Request:
-    """A request, as the unit reads it."""
-
-    device_id: str
-    password: str
-    function: Function
-    parameters: Sequence[tuple[int, bytes | None]]
-
-
-def decode_request(packet: bytes, sizes: Mapping[int, int]) -> Request:
-    """Read a request.
-
-    Args:
-        sizes: the size in bytes of each parameter a write may carry without saying its size;
-            any other is one byte.
-
-    Raises:
-        ProtocolError: the packet is not a valid request.
-    """
-    if len(packet) < 8 or not packet.startswith(_HEADER):
-        raise ProtocolError("Not a Duka One packet")
-    if checksum(packet[:-2]) != packet[-2:]:
-        raise ProtocolError("Wrong checksum")
-    end = len(packet) - 2
-    try:
-        if packet[2] != _PROTOCOL_TYPE:
-            raise ProtocolError(f"Unknown protocol type 0x{packet[2]:02X}")
-        device_id, pos = _read_text(packet, 3, end)
-        password, pos = _read_text(packet, pos, end)
-        try:
-            function = Function(packet[pos])
-        except ValueError as error:
-            raise ProtocolError(f"Unknown function 0x{packet[pos]:02X}") from error
-        pos += 1
-        carries_values = function is not Function.READ
-        parameters: list[tuple[int, bytes | None]] = []
-        page = 0
-        while pos < end:
-            marker = packet[pos]
-            if marker == _PAGE:
-                page = packet[pos + 1]
-                pos += 2
-                continue
-            size: int | None = None
-            if marker == _VALUE_SIZE:
-                size = packet[pos + 1]
-                pos += 2
-            number = page << 8 | packet[pos]
-            pos += 1
-            if not carries_values:
-                parameters.append((number, None))
-                continue
-            size = size if size is not None else sizes.get(number, 1)
-            if pos + size > end:
-                raise ProtocolError(f"Parameter 0x{number:X} runs past the end of the packet")
-            parameters.append((number, packet[pos:pos + size]))
-            pos += size
-    except IndexError as error:
-        raise ProtocolError("The packet ends in the middle of a parameter") from error
-    return Request(device_id, password, function, parameters)

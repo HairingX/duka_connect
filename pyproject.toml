@@ -33,7 +33,7 @@ classifiers = [
 ]
 requires-python = ">=3.14"
 dependencies = [
-    "event_connect>=0.4.4,<0.5",
+    "event_connect>=0.5,<0.6",
 ]
 
 [project.urls]
@@ -44,7 +44,7 @@ Releases = "https://github.com/HairingX/duka_connect/releases"
 
 [tool.hairingx-workflows]
 transition = "Moved onto the shared workflows with tests that do not yet cover every line."
-coverage = 93
+coverage = 96
 libraries = ["event_connect"]
 
 [tool.setuptools.packages.find]
@@ -58,6 +58,9 @@ duka_connect = ["py.typed"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+# The measurements that change a unit are a script, not part of the package; tests run them
+# against the simulated unit.
+pythonpath = ["tools"]
 markers = [
     "live: talks to a real unit; skipped unless one is configured. Exclude with -m \"not live\".",
 ]
@@ -69,14 +72,14 @@ log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 [tool.pyright]
 # The standard belongs to the repository, not to a personal editor setting: an IDE and a CI
 # run must agree on what counts as an error.
-include = ["src", "tests"]
+include = ["src", "tests", "tools"]
 exclude = ["**/__pycache__", "**/.venv", "**/.claude"]
 typeCheckingMode = "strict"
 reportMissingTypeStubs = "none"
 
 [[tool.pyright.executionEnvironments]]
-# Tests import the installed package, as its users do (pip install -e .), and each other as
-# `conftest`, as pytest resolves them from the tests directory.
+# Tests import the installed package, as its users do (pip install -e .), each other as
+# `conftest`, as pytest resolves them from the tests directory, and the measurements script.
 root = "tests"
-extraPaths = ["tests"]
+extraPaths = ["tests", "tools"]
 reportPrivateUsage = "none"
