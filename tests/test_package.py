@@ -16,9 +16,23 @@ def test_everything_exported_exists() -> None:
         assert hasattr(duka_connect.testing, name), name
 
 
-def test_every_point_has_its_own_key() -> None:
-    names = [str(point.key) for point in duka_connect.DUKA_ONE]
-    assert len(names) == len(set(names))
+def test_the_names_every_client_shares_are_event_connects() -> None:
+    shared = [
+        "AuthenticationError", "CannotConnectError", "Certainty", "Change", "ClientError", "Clock",
+        "DataValue", "DeviceClient", "Identity", "InvalidValueError", "Key", "Labels", "Limits",
+        "ModelError", "NotConnectedError", "PointsCallback", "PollRate", "Quality", "ReadOnlyError",
+        "Selector", "Status", "StatusCallback", "Unit", "UnsupportedDeviceError", "ValueCallback",
+        "Write", "WriteKind", "WriteRange",
+    ]
+    for name in shared:
+        assert name in duka_connect.__all__, name
+        assert getattr(duka_connect, name) is getattr(event_connect, name), name
+
+
+def test_timing_cannot_be_tuned_from_outside() -> None:
+    for name in ("Timing", "Retry", "CircuitBreaker", "Fixed", "NO_RETRY", "Refresh", "SystemClock",
+                 "DUKA_ONE_TIMING", "DUKA_ONE_BREAKER", "ProtocolError"):
+        assert name not in duka_connect.__all__, name
 
 
 def test_the_timer_modes_are_named_by_what_they_do() -> None:
@@ -28,7 +42,7 @@ def test_the_timer_modes_are_named_by_what_they_do() -> None:
 
 
 def test_the_clock_battery_voltage_has_been_read_on_a_duka_one() -> None:
-    points = {point.key: point for point in duka_connect.DUKA_ONE}
+    points = {point.key: point for point in duka_connect.DUKA_ONE.points}
     assert points[duka_connect.PointKey.RTC_BATTERY_VOLTAGE].certainty is duka_connect.Certainty.VERIFIED
 
 
@@ -37,7 +51,7 @@ def test_a_points_certainty_is_the_one_every_point_has() -> None:
 
 
 def test_every_number_that_can_be_written_says_its_range_and_its_encoding_carries_it() -> None:
-    for point in duka_connect.DUKA_ONE:
+    for point in duka_connect.DUKA_ONE.points:
         if not point.writable or point.key.type is not int:
             continue
         write_range = point.write_range()

@@ -1,18 +1,18 @@
 """The client: connecting to a unit, reading what is due, and writing."""
+import asyncio
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 
-from ._duka_one import DUKA_ONE, DUKA_ONE_BREAKER, DUKA_ONE_TIMING, PointKey
 from event_connect import (
-    Breaker,
     CannotConnectError,
-    CircuitBreaker,
     Clock,
     DataValue,
+    Identity,
     Key,
     NotConnectedError,
     Passes,
+    PointsCallback,
     PollRate,
     Quality,
     ReadOnlyError,
@@ -23,8 +23,6 @@ from event_connect import (
     StatusBoard,
     StatusCallback,
     Subscriptions,
-    SystemClock,
-    Timing,
     UnsupportedDeviceError,
     ValueCallback,
     Write,
@@ -36,8 +34,10 @@ from event_connect import (
     stale,
     tell,
 )
+from ._duka_one import PointKey
+from ._model import DukaModel
 from ._points import Point, Undecodable
-from ._protocol import PORT, Function, encode_request
+from ._protocol import Function, encode_request
 from ._transport import UdpLink
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,68 +47,61 @@ DEFAULT_PASSWORD = "1111"
 
 _MAX_PARAMETERS_PER_REQUEST = 32
 
+_PAUSE_AFTER_FAILURE = 1.0  # guess
+"""Seconds `run()` waits after a poll that raised, so that a failure that repeats is not retried
+without a pause."""
+
 
 class Client:
     """A Duka One on the local network.
 
     The client never reads on its own: `poll()` reads what is due - the subscribed points on their
     poll rates, and what a write or a change has asked to be read again - and does nothing when
-    nothing is.
+    nothing is; `run()` polls whenever something is due.
+
+    `poll`, `refresh` and `write` raise `NotConnectedError` until `connect()`, and again from
+    `disconnect()` until the next `connect()`; `points`, `model` and `seconds_until_next_poll`
+    raise it until the first `connect()`.
     """
 
-    def __init__(
-        self,
-        host: str,
-        device_id: str,
-        password: str = DEFAULT_PASSWORD,
-        *,
-        port: int = PORT,
-        timeout: float = 2.0,
-        attempts: int = 3,
-        clock: Clock | None = None,
-        read_only: bool = False,
-        timing: Timing = DUKA_ONE_TIMING,
-        breaker: CircuitBreaker = DUKA_ONE_BREAKER,
-    ) -> None:
-        """Set up a client; nothing is sent until `connect()`.
+    def __init__(self, link: UdpLink, *, device_id: str, password: str, model: DukaModel,
+                 offline_after_intervals: int, read_only: bool, clock: Clock) -> None:
+        """Set up a client of the unit `link` reaches; nothing is sent until `connect()`.
 
         Args:
-            timeout: seconds to wait for each answer.
-            attempts: how many times a request is sent before the unit counts as not answering.
+            offline_after_intervals: how many reads of the model's fastest poll rate the unit may
+                miss before it counts as not answering.
             read_only: refuse every write.
-            timing: when points are read, and how long a write takes to show.
-            breaker: after how many unanswered requests the unit is no longer asked, and for how
-                long; requests meanwhile fail at once.
         """
         self.device_id = device_id
         self._password = password
-        self._link = UdpLink(host, port)
-        self._timeout = timeout
-        self._attempts = attempts
-        self._clock: Clock = clock or SystemClock()
+        self._link = link
+        self._model = model
+        self._clock = clock
         self._read_only = read_only
-        self._points: dict[str, Point[Any]] = {point.key: point for point in DUKA_ONE}
-        self._readable = tuple(point for point in DUKA_ONE if point.readable)
-        self._sizes = {point.parameter: point.size for point in DUKA_ONE}
+        self._offline_after_intervals = offline_after_intervals
+        self._timing = model.timing
+        self._points: dict[str, Point[Any]] = {point.key: point for point in model.points}
+        self._readable = tuple(point for point in model.points if point.readable)
+        self._sizes = {point.parameter: point.size for point in model.points}
         self._values: dict[str, DataValue[Any]] = {}
         self._subscriptions = Subscriptions()
         self._polled_keys: set[str] = set()
         self._scheduled_keys = frozenset(point.key for point in self._readable)
-        self._timing = timing
-        self._reachability = Reachability(self._clock, timing.offline_after, name="The Duka One")
-        self._breaker_settings = breaker
-        self._breaker: Breaker = breaker.breaker()
-        self._scheduler = timing.scheduler(self._clock)
+        self._reachability = self._new_reachability()
+        self._scheduler = self._timing.scheduler(self._clock)
         self._scheduler.set_points(self._readable)
+        self._wake = asyncio.Event()
         for point in self._readable:
             self._update_polling(point.key)
         self._statuses = StatusBoard(self._clock)
-        self._requests = 0
-        self._unanswered_requests = 0
-        self._refused = 0
-        self._latency_total = 0.0
         self._passes = Passes()
         self._connected = False
+        self._ever_connected = False
+
+    def _new_reachability(self) -> Reachability:
+        return Reachability(self._clock, offline_after_intervals=self._offline_after_intervals,
+                            fastest_interval=self._timing.fastest_interval, name=f"The {self._model.name}")
 
     # ============================================================================== the unit
 
@@ -118,15 +111,53 @@ class Client:
         return self._link.host
 
     @property
-    def points(self) -> Mapping[Key[Any], Point[Any]]:
-        """Every point, by its key."""
-        return cast(Mapping[Key[Any], Point[Any]], self._points)
+    def model(self) -> DukaModel:
+        """The unit's model."""
+        self._require_connected_once()
+        return self._model
 
     @property
-    def unit_type(self) -> int | None:
-        """The unit type the unit reported when connecting."""
+    def identity(self) -> Identity:
+        """What the unit reports about itself: its `unit_type`, None until it has."""
         value = self._values.get(PointKey.UNIT_TYPE)
-        return None if value is None else cast(int | None, value.value)
+        return {"unit_type": None if value is None else cast(int | None, value.value)}
+
+    @property
+    def points(self) -> Mapping[Key[Any], Point[Any]]:
+        """Every point the unit has, by its key."""
+        self._require_connected_once()
+        return cast(Mapping[Key[Any], Point[Any]], self._points)
+
+    def has(self, key: str) -> bool:
+        """Whether the unit has `key`; False until the first `connect()`."""
+        return self._ever_connected and key in self._points
+
+    def can_read(self, key: str) -> bool:
+        """Whether the unit has `key`, and it can be read."""
+        return self.has(key) and self._points[key].readable
+
+    def can_write(self, key: str) -> bool:
+        """Whether the unit has `key`, and it can be written."""
+        return self.has(key) and self._points[key].writable
+
+    def select(self, targets: Selector | Sequence[str]) -> tuple[Point[Any], ...]:
+        """The points `targets` selects.
+
+        Raises:
+            NotConnectedError: the client has never been connected.
+            KeyError: naming every key the unit does not have.
+        """
+        self._require_connected_once()
+        return select(self._model.points, selector(targets))
+
+    def instances(self, label: str) -> tuple[int, ...]:
+        """No numbers: a Duka One has no instances of anything."""
+        return ()
+
+    @property
+    def unavailable_reasons(self) -> Mapping[Key[Any], str]:
+        """None: a Duka One has every point of its model."""
+        return {}
 
     async def connect(self) -> None:
         """Read every point once.
@@ -136,7 +167,7 @@ class Client:
                 may be wrong, as a unit does not answer a wrong password.
             UnsupportedDeviceError: the unit answered, but not as a Duka One does.
         """
-        self._breaker = self._breaker_settings.breaker()
+        self._link.reset()
         if not await self._read(self._readable):
             raise CannotConnectError(
                 f"No answer from {self.host}; check its address, device id and password"
@@ -145,42 +176,58 @@ class Client:
         if unit_type is None or not unit_type.is_good:
             raise UnsupportedDeviceError(f"{self.host} did not report a unit type", {"unit_type": None})
         self._connected = True
+        self._ever_connected = True
+        self._wake.set()
         _LOGGER.debug("Connected to %s, unit type %s", self.host, unit_type.value)
 
     async def disconnect(self) -> None:
-        """Close the connection; the values stay as they are."""
+        """Close the connection: `Status.CONNECTED` turns False, and the values stay as they are."""
         self._connected = False
         await self._link.close()
+        self._reachability = self._new_reachability()
+        self._statuses.set(Status.CONNECTED, False)
+        self._wake.set()
+
+    async def run(self) -> NoReturn:
+        """Poll whenever something is due, until cancelled.
+
+        A poll that raises anything but `NotConnectedError` is logged, and polling goes on.
+
+        Raises:
+            NotConnectedError: the client is not connected, or is disconnected while it runs.
+        """
+        while True:
+            try:
+                await self.poll()
+            except NotConnectedError:
+                raise
+            except Exception:
+                _LOGGER.exception("%s could not be polled", self._reachability.name)
+                wait = _PAUSE_AFTER_FAILURE
+            else:
+                wait = self.seconds_until_next_poll()
+            # Cleared only now: whatever the poll changed is in the wait just worked out.
+            self._wake.clear()
+            try:
+                async with asyncio.timeout(wait):
+                    await self._wake.wait()
+            except TimeoutError:
+                pass
 
     # ================================================================================ values
 
     def value[T](self, key: Key[T]) -> DataValue[T] | None:
-        """A point's current value, or None before it is read.
+        """A point's current value, or None while it has none.
 
         Raises:
-            KeyError: a Duka One has no such point.
             TypeError: the point's value is of another type than `key` says.
         """
-        self._point(key)
+        point = self._points.get(key)
+        if point is not None:
+            self._check_type(point, key)
         return cast(DataValue[T] | None, self._values.get(key))
 
-    def diagnostics(self) -> Mapping[str, object]:
-        """Counters for a bug report; never the address, device id or password."""
-        open_for = self._breaker.open_for(self._clock.monotonic())
-        answered = self._requests - self._unanswered_requests
-        return {
-            "requests": self._requests,
-            "unanswered": self._unanswered_requests,
-            "refused_while_open": self._refused,
-            "average_latency": self._latency_total / answered if answered else None,
-            "consecutive_unanswered": self._breaker.unanswered_in_a_row,
-            "open": open_for > 0,
-            "open_for": open_for,
-            "openings": self._breaker.openings,
-            "gave_up": self._breaker.gave_up,
-            "silent_for": self._reachability.silent_for,
-        }
-
+    @property
     def values(self) -> Mapping[Key[Any], DataValue[Any]]:
         """Every value read so far, by key."""
         return {self._points[key].key: value for key, value in self._values.items()}
@@ -188,8 +235,9 @@ class Client:
     def status(self, status: Status) -> DataValue[bool]:
         """What the client knows of `status` now.
 
-        `Status.CONNECTED` turns false only once the unit has been silent for the timing's
-        `offline_after`; `silent_for` says how long it has been so far.
+        `Status.CONNECTED` turns False once the unit has missed the model's fastest poll rate's
+        reads `offline_after_intervals` times, or the client is disconnected; `silent_for` says how
+        long the unit has been silent so far.
         """
         return self._statuses.value(status)
 
@@ -203,6 +251,18 @@ class Client:
         """Seconds since the unit first left a request unanswered since its last answer; 0 while
         it answers."""
         return self._reachability.silent_for
+
+    def consecutive_failures(self, key: str) -> int:
+        """How many reads of `key` in a row have failed.
+
+        Raises:
+            KeyError: the unit has no point `key` that can be read.
+        """
+        return self._scheduler.consecutive_failures(key)
+
+    def diagnostics(self) -> Mapping[str, object]:
+        """Counters for a bug report; never the address, device id or password."""
+        return {**self._link.diagnostics(), "silent_for": self._reachability.silent_for}
 
     # ============================================================================== interest
 
@@ -237,6 +297,11 @@ class Client:
         """
         return self._statuses.subscribe(status, callback)
 
+    def subscribe_points(self, callback: PointsCallback) -> Callable[[], None]:
+        """Call `callback` whenever the points the unit has change; as a Duka One's never do, it is
+        never called. Returns the unsubscriber."""
+        return lambda: None
+
     def set_polling(self, key: str, enabled: bool = True) -> None:
         """Poll `key` on its schedule even without a subscriber; False stops that."""
         if enabled:
@@ -249,17 +314,12 @@ class Client:
         """Whether `poll()` reads on the schedule. Off, it reads only what `refresh()` and writes
         ask for."""
         self._scheduler.set_scheduled(enabled)
-
-    def set_poll_interval(self, target: PollRate | str, seconds: float | None) -> float | None:
-        """Override how often a poll rate or a key is read; None restores its own interval.
-
-        Returns the interval in effect.
-        """
-        return self._scheduler.set_poll_interval(target, seconds)
+        self._wake.set()
 
     def _update_polling(self, key: str) -> None:
         if key in self._scheduled_keys:
             self._scheduler.set_polled(key, should_poll(self._points[key], self._subscriptions, self._polled_keys))
+            self._wake.set()
 
     # =============================================================================== reading
 
@@ -271,7 +331,10 @@ class Client:
         nothing is raised.
         """
         self._require_connected()
-        await self._passes.run(self._pass, due=lambda: bool(self._scheduler.due()))
+        try:
+            await self._passes.run(self._pass, due=lambda: bool(self._scheduler.due()))
+        finally:
+            self._wake.set()
 
     async def _pass(self) -> None:
         due = self._scheduler.due()
@@ -280,6 +343,7 @@ class Client:
 
     def seconds_until_next_poll(self) -> float | None:
         """Seconds until `poll()` has something to do, 0 if it has now; None if it never will."""
+        self._require_connected_once()
         due = self._scheduler.next_due()
         return None if due is None else max(0.0, due - self._clock.monotonic())
 
@@ -300,10 +364,13 @@ class Client:
             points = tuple(point for point in self._readable if point.poll_rate is targets)
         else:
             points = self._readable_of(selector(targets))
-        if after > 0:
-            self._scheduler.refresh([point.key for point in points], after=after, force=True)
-            return
-        await self._read(points)
+        try:
+            if after > 0:
+                self._scheduler.refresh([point.key for point in points], after=after, force=True)
+                return
+            await self._read(points)
+        finally:
+            self._wake.set()
 
     async def _read(self, points: Sequence[Point[Any]]) -> bool:
         """Read `points`, and return whether the unit answered every request."""
@@ -352,7 +419,7 @@ class Client:
         Raises:
             KeyError: naming every key a Duka One does not have.
         """
-        return tuple(point for point in select(DUKA_ONE, targets) if point.readable)
+        return tuple(point for point in select(self._model.points, targets) if point.readable)
 
     def _schedule(self, refresh: Refresh, after: float) -> None:
         keys = [point.key for point in self._readable_of(refresh.targets)]
@@ -391,18 +458,21 @@ class Client:
             encoded = point.to_bytes(write.value)
             (commands if point.write_kind is WriteKind.COMMAND else settings).append((point, encoded))
         with self._statuses.holding(Status.WRITE_PENDING):
-            taken = True
-            if settings:
-                taken = await self._write_settings(settings)
-            if commands and taken:
-                packet = encode_request(
-                    self.device_id, self._password, Function.WRITE,
-                    [(point.parameter, data) for point, data in commands],
-                )
-                await self._link.send(packet)
-                for point, _ in commands:
-                    self._written(point)
-            return taken
+            try:
+                taken = True
+                if settings:
+                    taken = await self._write_settings(settings)
+                if commands and taken:
+                    packet = encode_request(
+                        self.device_id, self._password, Function.WRITE,
+                        [(point.parameter, data) for point, data in commands],
+                    )
+                    await self._link.send(packet)
+                    for point, _ in commands:
+                        self._written(point)
+                return taken
+            finally:
+                self._wake.set()
 
     async def _write_settings(self, settings: list[tuple[Point[Any], bytes]]) -> bool:
         packet = encode_request(
@@ -446,42 +516,31 @@ class Client:
     async def _request(self, packet: bytes) -> Mapping[int, bytes | None] | None:
         """Send a request, and return the unit's answer, or None if it gave none or the breaker
         is open."""
-        attempt = self._breaker.attempt(self._clock.monotonic())
-        if attempt is None:
-            self._refused += 1
-            self._unanswered()
+        response = await self._link.request(packet, self.device_id, self._sizes)
+        if response is None:
+            self._reachability.unanswered()
+            self._statuses.set(Status.CONNECTED, self._reachability.reachable)
             return None
-        with attempt:
-            started = self._clock.monotonic()
-            self._requests += 1
-            try:
-                response = await self._link.request(
-                    packet, self.device_id, self._sizes, self._timeout, self._attempts
-                )
-            except TimeoutError:
-                self._unanswered_requests += 1
-                attempt.unanswered(self._clock.monotonic())
-                _LOGGER.debug("%s did not answer, silent for %.1f s", self.host, self._reachability.silent_for)
-                self._unanswered()
-                return None
-            self._latency_total += self._clock.monotonic() - started
-            attempt.answered()
         self._reachability.answered(self._scheduler)
         self._statuses.set(Status.CONNECTED, self._reachability.reachable)
         return response.values
-
-    def _unanswered(self) -> None:
-        self._reachability.unanswered()
-        self._statuses.set(Status.CONNECTED, self._reachability.reachable)
 
     def _point(self, key: Key[Any]) -> Point[Any]:
         point = self._points.get(key)
         if point is None:
             raise KeyError(f"A Duka One has no point {key!r}")
+        self._check_type(point, key)
+        return point
+
+    @staticmethod
+    def _check_type(point: Point[Any], key: Key[Any]) -> None:
         if point.key.type is not key.type:
             raise TypeError(f"{key} is a {point.key.type.__name__}, not a {key.type.__name__}")
-        return point
 
     def _require_connected(self) -> None:
         if not self._connected:
             raise NotConnectedError("The client is not connected")
+
+    def _require_connected_once(self) -> None:
+        if not self._ever_connected:
+            raise NotConnectedError("The client has never been connected; call connect() first")

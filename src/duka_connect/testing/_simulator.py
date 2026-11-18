@@ -6,8 +6,8 @@ from .._duka_one import DUKA_ONE, PointKey
 from .._protocol import DEVICE_ID_PARAMETER, SEARCH_DEVICE_ID, Function, ProtocolError
 from ._protocol import decode_request, encode_response
 
-_PARAMETER = {point.key: point.parameter for point in DUKA_ONE}
-_SIZES = {point.parameter: point.size for point in DUKA_ONE}
+_PARAMETER = {point.key: point.parameter for point in DUKA_ONE.points}
+_SIZES = {point.parameter: point.size for point in DUKA_ONE.points}
 _FAN_SPEEDS = tuple(
     _PARAMETER[key]
     for key in (
@@ -84,14 +84,17 @@ class SimulatedDuka(asyncio.DatagramProtocol):
         self.unsupported = set(unsupported)
         self.answering = True
         self.requests: list[tuple[Function, list[int]]] = []
+        self.host = ""
         self.port = 0
         self._transport: asyncio.DatagramTransport | None = None
 
     async def start(self, host: str = "127.0.0.1", port: int = 0) -> int:
-        """Bind the unit, and return the port it answers on, also kept as `port`."""
+        """Bind the unit, and return the port it answers on, also kept as `port`; `host` is kept
+        as `host`."""
         loop = asyncio.get_running_loop()
         transport, _ = await loop.create_datagram_endpoint(lambda: self, local_addr=(host, port))
         self._transport = transport
+        self.host = host
         self.port = int(transport.get_extra_info("sockname")[1])
         return self.port
 

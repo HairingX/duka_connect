@@ -7,13 +7,12 @@ from typing import Any
 import pytest
 
 from conftest import make_client
+from event_connect import NO_RETRY, CircuitBreaker
+
 from duka_connect import (
     DUKA_ONE,
-    DUKA_ONE_TIMING,
-    NO_RETRY,
     AlarmLevel,
     CannotConnectError,
-    CircuitBreaker,
     Client,
     DataValue,
     InvalidValueError,
@@ -25,15 +24,15 @@ from duka_connect import (
     ReadOnlyError,
     Speed,
     Status,
-    Timing,
     UnsupportedDeviceError,
     VentilationMode,
     Write,
     WriteKind,
 )
-from duka_connect.testing import FakeClock
+from duka_connect._client import Client as _Client
 from duka_connect._protocol import Function
-from duka_connect.testing import FILTER_DAYS, SimulatedDuka
+from duka_connect._transport import UdpLink
+from duka_connect.testing import FILTER_DAYS, FakeClock, SimulatedDuka
 
 
 def values_of(client: Client, key: Key[Any]) -> object:
@@ -54,7 +53,7 @@ def read(unit: SimulatedDuka) -> list[int]:
 def triggers(*rates: PollRate) -> list[int]:
     """The parameters of the points at these poll rates whose change sets off a refresh: they are
     polled with no subscriber, as only a read sees their change."""
-    return [point.parameter for point in DUKA_ONE if point.on_change is not None and point.poll_rate in rates]
+    return [point.parameter for point in DUKA_ONE.points if point.on_change is not None and point.poll_rate in rates]
 
 
 # ============================================================================== connecting
@@ -72,7 +71,7 @@ async def test_connecting_reads_every_point(client: Client) -> None:
     assert values_of(client, PointKey.FIRMWARE_VERSION) == "1.5"
     assert values_of(client, PointKey.FIRMWARE_DATE) == date(2023, 5, 17)
     assert values_of(client, PointKey.ALARM) is AlarmLevel.NONE
-    assert client.unit_type == 3
+    assert client.identity == {"unit_type": 3}
     assert client.status(Status.CONNECTED).value is True
 
 
@@ -138,9 +137,13 @@ async def test_a_key_of_the_wrong_type_raises(client: Client) -> None:
         client.value(Key("humidity", str))
 
 
-async def test_a_key_a_duka_one_does_not_have_raises(client: Client) -> None:
+async def test_a_key_a_duka_one_does_not_have_has_no_value(client: Client) -> None:
+    assert client.value(Key("nothing", int)) is None
+
+
+async def test_a_key_a_duka_one_does_not_have_cannot_be_subscribed_to(client: Client) -> None:
     with pytest.raises(KeyError):
-        client.value(Key("nothing", int))
+        client.subscribe(Key("nothing", int), lambda _key, _old, _new: None)
 
 
 async def test_a_command_has_no_value_to_subscribe_to(client: Client) -> None:
@@ -181,21 +184,12 @@ async def test_a_poll_reads_only_what_is_due(client: Client, unit: SimulatedDuka
 
 async def test_a_static_point_is_not_polled(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
     watch(client, PointKey.FIRMWARE_VERSION)
-    firmware = next(point.parameter for point in DUKA_ONE if point.key == PointKey.FIRMWARE_VERSION)
+    firmware = next(point.parameter for point in DUKA_ONE.points if point.key == PointKey.FIRMWARE_VERSION)
     unit.requests.clear()
     for _ in range(3):
         clock.advance(10_000)
         await client.poll()
     assert read(unit) and firmware not in read(unit)
-
-
-async def test_a_poll_interval_can_be_set_for_a_key(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
-    watch(client, PointKey.RTC_BATTERY_VOLTAGE)
-    assert client.set_poll_interval(PointKey.RTC_BATTERY_VOLTAGE, 60) == 60
-    unit.requests.clear()
-    clock.advance(60)
-    await client.poll()
-    assert read(unit) == sorted([*triggers(PollRate.FAST, PollRate.MEDIUM, PollRate.SLOW), 0x24])
 
 
 async def test_a_point_without_a_subscriber_is_read_only_when_asked(
@@ -207,6 +201,30 @@ async def test_a_point_without_a_subscriber_is_read_only_when_asked(
     assert 0x24 not in read(unit)
     unit.requests.clear()
     client.set_polling(PointKey.RTC_BATTERY_VOLTAGE)
+    await client.poll()
+    assert read(unit) == [0x24]
+
+
+async def test_a_point_no_longer_wanted_is_no_longer_read(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unsubscribe = client.subscribe(PointKey.WEEKLY_SCHEDULE, lambda _key, _old, _new: None)
+    client.set_polling(PointKey.RTC_BATTERY_VOLTAGE)
+    unsubscribe()
+    client.set_polling(PointKey.RTC_BATTERY_VOLTAGE, False)
+    unit.requests.clear()
+    clock.advance(10_000)
+    await client.poll()
+    assert 0x72 not in read(unit) and 0x24 not in read(unit)
+
+
+async def test_a_refresh_asked_for_later_is_read_then(client: Client, unit: SimulatedDuka, clock: FakeClock) -> None:
+    await client.refresh([PointKey.RTC_BATTERY_VOLTAGE], after=5.0)
+    unit.requests.clear()
+    clock.advance(4)
+    await client.poll()
+    assert unit.requests == []
+    clock.advance(1)
     await client.poll()
     assert read(unit) == [0x24]
 
@@ -338,8 +356,10 @@ async def test_a_silent_unit_is_probed_every_ten_seconds_for_as_long_as_it_stays
 async def test_a_client_given_a_breaker_that_never_retries_gives_the_unit_up(
     unit: SimulatedDuka, clock: FakeClock
 ) -> None:
-    client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
-                    clock=clock, breaker=CircuitBreaker(after=1, retry=NO_RETRY))
+    link = UdpLink("127.0.0.1", unit.port, timeout=0.2, attempts=1, breaker=CircuitBreaker(after=1, retry=NO_RETRY),
+                   clock=clock)
+    client = _Client(link, device_id=unit.device_id, password=unit.password, model=DUKA_ONE,
+                     offline_after_intervals=3, read_only=False, clock=clock)
     await client.connect()
     unit.answering = False
     await client.refresh([PointKey.HUMIDITY])
@@ -449,8 +469,7 @@ async def test_a_point_that_is_only_read_cannot_be_written(client: Client) -> No
 
 
 async def test_a_read_only_client_writes_nothing(unit: SimulatedDuka, clock: FakeClock) -> None:
-    client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
-                    clock=clock, read_only=True)
+    client = make_client(unit, clock, read_only=True)
     await client.connect()
     with pytest.raises(ReadOnlyError):
         await client.write(PointKey.POWER, False)
@@ -657,8 +676,8 @@ async def test_only_what_is_watched_is_read_again(client: Client, unit: Simulate
 
 
 def test_every_point_read_again_is_a_point_with_a_value() -> None:
-    points: dict[str, Any] = {point.key: point for point in DUKA_ONE}
-    for point in DUKA_ONE:
+    points: dict[str, Any] = {point.key: point for point in DUKA_ONE.points}
+    for point in DUKA_ONE.points:
         for refresh in (point.on_write, point.on_change):
             if refresh is None:
                 continue
@@ -669,28 +688,15 @@ def test_every_point_read_again_is_a_point_with_a_value() -> None:
 
 
 def test_every_command_waits_before_what_it_changed_is_read() -> None:
-    for point in DUKA_ONE:
+    for point in DUKA_ONE.points:
         if point.write_kind is WriteKind.COMMAND:
-            assert point.on_write is not None and DUKA_ONE_TIMING.on_write_delay(point) > 0, point.key
-
-
-async def test_a_client_can_be_given_its_own_timing(unit: SimulatedDuka, clock: FakeClock) -> None:
-    client = Client("127.0.0.1", unit.device_id, unit.password, port=unit.port, timeout=0.2, attempts=1,
-                    clock=clock, timing=Timing(poll_intervals={PollRate.FAST: 5.0}))
-    await client.connect()
-    watch(client, PointKey.POWER)
-    unit.requests.clear()
-    clock.advance(5)
-    await client.poll()
-    assert read(unit) == triggers(PollRate.FAST)
-    await client.disconnect()
+            assert point.on_write is not None and DUKA_ONE.timing.on_write_delay(point) > 0, point.key
 
 
 async def test_after_an_outage_of_15_s_a_value_read_every_10_s_is_back_20_s_after_it_began(
     client: Client, unit: SimulatedDuka, clock: FakeClock
 ) -> None:
-    watch(client, PointKey.HUMIDITY)
-    client.set_poll_interval(PointKey.HUMIDITY, 10.0)
+    watch(client, PointKey.FAN_RPM)
     clock.advance(10)
     await client.poll()
     unit.answering = False
@@ -700,7 +706,7 @@ async def test_after_an_outage_of_15_s_a_value_read_every_10_s_is_back_20_s_afte
         if second == 15:
             unit.answering = True
         await client.poll()
-        value = client.value(PointKey.HUMIDITY)
+        value = client.value(PointKey.FAN_RPM)
         if second >= 15 and good_again is None and value is not None and value.quality is Quality.GOOD:
             good_again = second
     assert good_again == 20

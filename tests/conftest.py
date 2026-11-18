@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 import pytest
 
 from duka_connect import Client
-from duka_connect.testing import FakeClock, SimulatedDuka
+from duka_connect.testing import FakeClock, SimulatedDuka, client_for
 
 
 @pytest.fixture
@@ -20,11 +20,9 @@ def clock() -> FakeClock:
     return FakeClock()
 
 
-def make_client(unit: SimulatedDuka, clock: FakeClock, password: str | None = None) -> Client:
-    return Client(
-        "127.0.0.1", unit.device_id, unit.password if password is None else password,
-        port=unit.port, timeout=0.2, attempts=1, clock=clock,
-    )
+def make_client(unit: SimulatedDuka, clock: FakeClock, password: str | None = None, *,
+                read_only: bool = False) -> Client:
+    return client_for(unit, timeout=0.2, attempts=1, clock=clock, password=password, read_only=read_only)
 
 
 @pytest.fixture
