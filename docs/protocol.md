@@ -83,8 +83,9 @@ names what its change affects (`on_change`), and a command what it changes (`on_
 are read after a wait, and, where it says so, again at that interval while they still change, up
 to a limit - two reads in a row that agree end it, the fans' speeds within 20 rpm and the battery
 within 10 mV of each other. A change read in turn sets off its own. A written setting's answer is
-read as any other, so its change sets off the same. Every wait here is a first estimate, to be
-measured on a Duka One with `duka_connect.testing`.
+read as any other, so its change sets off the same. Every wait here is a first estimate, set in
+the model, `DUKA_ONE`, and marked there as a guess; `tools/measure.py` measures the fans' on a
+Duka One.
 
 | A change of | Reads | After | Until settled, at most |
 |---|---|---|---|
