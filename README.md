@@ -133,6 +133,7 @@ bug report, and never holds the address, device id or password:
 | `openings` | How many times the breaker has opened since the unit last answered. |
 | `gave_up` | Whether it is no longer asked at all; a Duka One is probed for as long as it is silent, so never. |
 | `silent_for` | Seconds since its first request left unanswered since its last answer. |
+| `writes` | The latest five writes sent to each key, the newest last; see below. |
 
 ### Writing
 
@@ -150,6 +151,12 @@ it is sent, at the next `poll()`.
 
 A value outside a point's limits, or of another type, raises `InvalidValueError` before anything
 is sent; a point that cannot be written raises `ValueError`.
+
+`client.diagnostics()["writes"]` shows, for each key, the writes sent to it: the value asked for,
+the bytes sent, when, and how it ended - `taken`, `refused`, `sent` for a command, which has no
+answer, `no_answer` or `error` - with what the unit answered in `detail`: the value it has
+instead, or that it does not have the parameter. Its `read_back` is the unit's next answer for
+the key: for a setting, the value the unit answered the write with; otherwise the next read.
 
 | Error | Meaning |
 |---|---|

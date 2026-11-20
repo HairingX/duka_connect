@@ -67,7 +67,8 @@ class SimulatedDuka(asyncio.DatagramProtocol):
 
     `values` is the unit's state by parameter number, and can be changed between requests.
     A wrong password, a parameter the unit does not have, and `answering = False` behave as a
-    unit does: no answer, an "unsupported" marker, and silence.
+    unit does: no answer, an "unsupported" marker, and silence. A write to a parameter in
+    `refusing` leaves it as it was, and is answered with what the unit has.
     """
 
     def __init__(
@@ -82,6 +83,7 @@ class SimulatedDuka(asyncio.DatagramProtocol):
         self.password = password
         self.values: dict[int, bytes] = dict(DEFAULT_VALUES if values is None else values)
         self.unsupported = set(unsupported)
+        self.refusing: set[int] = set()
         self.answering = True
         self.requests: list[tuple[Function, list[int]]] = []
         self.host = ""
@@ -130,7 +132,7 @@ class SimulatedDuka(asyncio.DatagramProtocol):
             return
         if request.function in (Function.WRITE, Function.WRITE_READ):
             for number, value in request.parameters:
-                if value is not None and number not in self.unsupported:
+                if value is not None and number not in self.unsupported and number not in self.refusing:
                     self._set(number, value)
         if request.function is Function.WRITE:
             return

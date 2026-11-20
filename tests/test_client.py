@@ -2,7 +2,7 @@
 import asyncio
 import logging
 from datetime import date, time
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -29,6 +29,7 @@ from duka_connect import (
     Write,
     WriteKind,
 )
+from duka_connect import _client as client_module
 from duka_connect._client import Client as _Client
 from duka_connect._protocol import Function
 from duka_connect._transport import UdpLink
@@ -515,6 +516,106 @@ async def test_a_timer_on_page_3_is_written_as_minutes_and_hours(
 async def test_a_filter_interval_outside_70_to_365_days_is_refused(client: Client) -> None:
     with pytest.raises(InvalidValueError):
         await client.write(PointKey.FILTER_INTERVAL, 30)
+
+
+# ============================================================================= write log
+
+
+def logged(client: Client, key: Key[Any]) -> list[dict[str, Any]]:
+    """The writes to `key` the client's diagnostics show, the newest last."""
+    writes = client.diagnostics()["writes"]
+    assert isinstance(writes, dict)
+    return cast(dict[str, list[dict[str, Any]]], writes).get(key, [])
+
+
+async def test_a_taken_setting_is_logged_with_the_units_answer_as_its_read_back(
+    client: Client, clock: FakeClock
+) -> None:
+    at = clock.now().isoformat()
+    assert await client.write(PointKey.VENTILATION_MODE, VentilationMode.SUPPLY)
+    assert logged(client, PointKey.VENTILATION_MODE) == [{
+        "number": 1, "value": "SUPPLY", "raw": [2], "sent_at": at, "attempts": 1, "outcome": "taken",
+        "detail": "", "ended_at": at, "read_back": {"value": "SUPPLY", "quality": "GOOD", "raw": [2], "at": at},
+    }]
+
+
+async def test_a_setting_the_unit_keeps_its_own_value_for_is_logged_refused_with_what_it_has(
+    client: Client, unit: SimulatedDuka
+) -> None:
+    unit.refusing.add(0xB7)
+    assert not await client.write(PointKey.VENTILATION_MODE, VentilationMode.SUPPLY)
+    [record] = logged(client, PointKey.VENTILATION_MODE)
+    assert (record["outcome"], record["detail"]) == ("refused", "the unit has 01")
+    assert record["read_back"]["value"] == "HEAT_RECOVERY"
+
+
+async def test_a_setting_the_unit_answers_as_missing_is_logged_refused_as_missing(
+    client: Client, unit: SimulatedDuka
+) -> None:
+    unit.unsupported.add(0xB7)
+    assert not await client.write(PointKey.VENTILATION_MODE, VentilationMode.SUPPLY)
+    [record] = logged(client, PointKey.VENTILATION_MODE)
+    assert (record["outcome"], record["detail"]) == ("refused", "missing: the unit does not have parameter 0xB7")
+    assert record["read_back"]["quality"] == "MISSING"
+
+
+def test_a_setting_left_out_of_the_units_answer_is_refused_as_not_in_it() -> None:
+    assert client_module._refusal(0xB7, {0x01: b"\x01"}) == "not in the unit's answer"
+
+
+async def test_a_write_the_unit_does_not_answer_is_logged_and_read_back_by_the_next_read(
+    client: Client, unit: SimulatedDuka, clock: FakeClock
+) -> None:
+    unit.answering = False
+    assert not await client.write(PointKey.POWER, False)
+    assert [(r["outcome"], r["read_back"]) for r in logged(client, PointKey.POWER)] == [("no_answer", None)]
+    await client.refresh([PointKey.POWER])
+    assert logged(client, PointKey.POWER)[0]["read_back"] is None, "a read left unanswered is no read-back"
+    unit.answering = True
+    clock.advance(10)
+    await client.refresh([PointKey.POWER])
+    assert logged(client, PointKey.POWER)[0]["read_back"]["value"] is True
+
+
+async def test_a_command_is_logged_sent_as_it_has_no_answer(client: Client) -> None:
+    assert await client.write(PointKey.RESET_ALARMS, True)
+    assert [(r["value"], r["raw"], r["outcome"], r["read_back"]) for r in logged(client, PointKey.RESET_ALARMS)] == [
+        (True, [0], "sent", None)]
+
+
+async def test_a_command_after_a_refused_setting_is_not_sent_or_logged(client: Client, unit: SimulatedDuka) -> None:
+    unit.refusing.add(0x01)
+    assert not await client.write_sequence([Write(PointKey.POWER, False), Write(PointKey.RESET_ALARMS, True)])
+    assert [r["outcome"] for r in logged(client, PointKey.POWER)] == ["refused"]
+    assert logged(client, PointKey.RESET_ALARMS) == []
+
+
+async def test_a_command_that_cannot_be_sent_is_logged_as_an_error(
+    client: Client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def broken(_link: UdpLink, _packet: bytes) -> None:
+        raise OSError("network is unreachable")
+    monkeypatch.setattr(UdpLink, "send", broken)
+    with pytest.raises(OSError):
+        await client.write(PointKey.RESET_ALARMS, True)
+    assert [(r["outcome"], r["detail"]) for r in logged(client, PointKey.RESET_ALARMS)] == [
+        ("error", "OSError: network is unreachable")]
+
+
+async def test_a_setting_given_up_while_sent_is_logged_as_an_error(client: Client, unit: SimulatedDuka) -> None:
+    unit.answering = False
+    write = asyncio.ensure_future(client.write(PointKey.POWER, False))
+    await asyncio.sleep(0.05)
+    write.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await write
+    assert [(r["outcome"], r["detail"]) for r in logged(client, PointKey.POWER)] == [("error", "CancelledError")]
+
+
+async def test_the_latest_writes_of_a_key_are_kept(client: Client) -> None:
+    for n in range(client_module._WRITES_KEPT + 1):
+        await client.write(PointKey.POWER, n % 2 == 0)
+    assert [r["number"] for r in logged(client, PointKey.POWER)] == list(range(2, client_module._WRITES_KEPT + 2))
 
 
 # ===================================================================== what is read again
