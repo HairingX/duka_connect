@@ -2,6 +2,7 @@
 import asyncio
 import logging
 from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any, NoReturn, cast
 
 from event_connect import (
@@ -27,6 +28,9 @@ from event_connect import (
     ValueCallback,
     Write,
     WriteKind,
+    WriteLog,
+    WriteOutcome,
+    WriteRecord,
     changed,
     select,
     selector,
@@ -46,6 +50,10 @@ DEFAULT_PASSWORD = "1111"
 """The password a Duka One has until it is changed in Duka's app."""
 
 _MAX_PARAMETERS_PER_REQUEST = 32
+
+_WRITES_KEPT = 5
+"""How many of the latest writes to each point are kept: enough to see a value set, set again,
+and read back."""
 
 _PAUSE_AFTER_FAILURE = 1.0  # guess
 """Seconds `run()` waits after a poll that raised, so that a failure that repeats is not retried
@@ -95,6 +103,7 @@ class Client:
         for point in self._readable:
             self._update_polling(point.key)
         self._statuses = StatusBoard(self._clock)
+        self._write_log = WriteLog(self._clock, per_key=_WRITES_KEPT)
         self._passes = Passes()
         self._connected = False
         self._ever_connected = False
@@ -276,8 +285,11 @@ class Client:
         return self._scheduler.consecutive_failures(key)
 
     def diagnostics(self) -> Mapping[str, object]:
-        """Counters for a bug report; never the address, device id or password."""
-        return {**self._link.diagnostics(), "silent_for": self._reachability.silent_for}
+        """Counters for a bug report, and the `writes` sent to each key: the latest few, the newest
+        last, each with how it ended and the unit's next answer for the key. Never the address,
+        device id or password."""
+        return {**self._link.diagnostics(), "silent_for": self._reachability.silent_for,
+                "writes": self._write_log.diagnostics()}
 
     # ============================================================================== interest
 
@@ -406,8 +418,7 @@ class Client:
                 continue
             for point in chunk_points:
                 if point.parameter in values:
-                    previous = self._values.get(point.key)
-                    self._store(point, self._decoded(point, values[point.parameter]), previous, success=True)
+                    self._store_answer(point, values[point.parameter])
         return answered
 
     def _decoded(self, point: Point[Any], data: bytes | None) -> DataValue[Any]:
@@ -418,6 +429,13 @@ class Client:
             return DataValue(point.to_value(data), Quality.GOOD, now, tuple(data))
         except Undecodable:
             return DataValue(None, Quality.NO_DATA, now, tuple(data))
+
+    def _store_answer(self, point: Point[Any], data: bytes | None) -> None:
+        """Store what the unit answered for `point`, which is also the read-back of its last write."""
+        previous = self._values.get(point.key)
+        value = self._decoded(point, data)
+        self._write_log.read(point.key, value)
+        self._store(point, value, previous, success=True)
 
     def _store(self, point: Point[Any], data: DataValue[Any], previous: DataValue[Any] | None, *,
                success: bool) -> None:
@@ -466,50 +484,75 @@ class Client:
         then the commands.
         """
         self._require_connected()
-        settings: list[tuple[Point[Any], bytes]] = []
-        commands: list[tuple[Point[Any], bytes]] = []
+        settings: list[_Encoded] = []
+        commands: list[_Encoded] = []
         for write in writes:
             point = self._writable_point(write.key)
-            encoded = point.to_bytes(write.value)
-            (commands if point.write_kind is WriteKind.COMMAND else settings).append((point, encoded))
+            encoded = _Encoded(point, write.value, point.to_bytes(write.value))
+            (commands if point.write_kind is WriteKind.COMMAND else settings).append(encoded)
         with self._statuses.holding(Status.WRITE_PENDING):
             try:
                 taken = True
                 if settings:
                     taken = await self._write_settings(settings)
                 if commands and taken:
-                    packet = encode_request(
-                        self.device_id, self._password, Function.WRITE,
-                        [(point.parameter, data) for point, data in commands],
-                    )
-                    await self._link.send(packet)
-                    for point, _ in commands:
-                        self._written(point)
+                    await self._write_commands(commands)
                 return taken
             finally:
                 self._wake.set()
 
-    async def _write_settings(self, settings: list[tuple[Point[Any], bytes]]) -> bool:
+    async def _write_settings(self, settings: list[_Encoded]) -> bool:
         packet = encode_request(
             self.device_id, self._password, Function.WRITE_READ,
-            [(point.parameter, data) for point, data in settings],
+            [(setting.point.parameter, setting.data) for setting in settings],
         )
-        values = await self._request(packet)
+        records = self._sent(settings)
+        try:
+            values = await self._request(packet)
+        except BaseException as error:
+            self._ended(records, WriteOutcome.ERROR, _error(error))
+            raise
         if values is None:
+            self._ended(records, WriteOutcome.NO_ANSWER, "")
             return False
         taken = True
-        for point, data in settings:
+        for setting, record in zip(settings, records):
+            point, data = setting.point, setting.data
             answered = values.get(point.parameter)
-            if answered != data:
+            if answered == data:
+                self._write_log.ended(record, WriteOutcome.TAKEN)
+            else:
                 taken = False
-                _LOGGER.debug("%s did not take %s: sent %s, it has %s", self.host, point.key, data.hex(),
-                              "none" if answered is None else answered.hex())
+                refusal = _refusal(point.parameter, values)
+                self._write_log.ended(record, WriteOutcome.REFUSED, detail=refusal)
+                _LOGGER.debug("%s did not take %s: sent %s; %s", self.host, point.key, data.hex(), refusal)
             if point.parameter in values and point.readable:
-                previous = self._values.get(point.key)
-                self._store(point, self._decoded(point, values[point.parameter]), previous, success=True)
+                self._store_answer(point, answered)
             if answered == data:
                 self._written(point)
         return taken
+
+    async def _write_commands(self, commands: list[_Encoded]) -> None:
+        packet = encode_request(
+            self.device_id, self._password, Function.WRITE,
+            [(command.point.parameter, command.data) for command in commands],
+        )
+        records = self._sent(commands)
+        try:
+            await self._link.send(packet)
+        except BaseException as error:
+            self._ended(records, WriteOutcome.ERROR, _error(error))
+            raise
+        self._ended(records, WriteOutcome.SENT, "")
+        for command in commands:
+            self._written(command.point)
+
+    def _sent(self, writes: Sequence[_Encoded]) -> list[WriteRecord]:
+        return [self._write_log.sent(write.point.key, write.value, write.data) for write in writes]
+
+    def _ended(self, records: Sequence[WriteRecord], outcome: WriteOutcome, detail: str) -> None:
+        for record in records:
+            self._write_log.ended(record, outcome, detail=detail)
 
     def _written(self, point: Point[Any]) -> None:
         """Schedule what the point's write disturbs."""
@@ -559,3 +602,26 @@ class Client:
     def _require_connected_once(self) -> None:
         if not self._ever_connected:
             raise NotConnectedError("The client has never been connected; call connect() first")
+
+
+@dataclass(frozen=True)
+class _Encoded:
+    """A write checked and encoded: the point, the value asked for, and the bytes to send."""
+    point: Point[Any]
+    value: object
+    data: bytes
+
+
+def _refusal(parameter: int, values: Mapping[int, bytes | None]) -> str:
+    """How the unit's answer `values` refused a write to `parameter`."""
+    if parameter not in values:
+        return "not in the unit's answer"
+    answered = values[parameter]
+    if answered is None:
+        return f"missing: the unit does not have parameter 0x{parameter:02X}"
+    return f"the unit has {answered.hex()}"
+
+
+def _error(error: BaseException) -> str:
+    """What `error` says, after what it is."""
+    return f"{type(error).__name__}: {error}" if str(error) else type(error).__name__
