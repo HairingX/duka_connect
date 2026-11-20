@@ -111,50 +111,64 @@ DUKA_ONE = DukaModel(
         Point(
             PointKey.POWER, 0x01, 1, decode_bool, encode_bool, poll_rate=PollRate.FAST,
             on_change=Refresh((*_FANS, PointKey.BOOST), after=3.0, until_stable=30.0),  # guess
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: on (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.SPEED, 0x02, 1, state_decoder(Speed), encode_state, poll_rate=PollRate.FAST,
             on_change=_FANS_SETTLE,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: speed 1 (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.BOOST, 0x06, 1, decode_bool, poll_rate=PollRate.FAST,
             on_change=Refresh(
                 (*_FANS, PointKey.HUMIDITY, PointKey.HUMIDITY_OVER_THRESHOLD), after=3.0, until_stable=30.0,  # guess
             ),
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.TIMER_MODE, 0x07, 1, state_decoder(TimerMode), encode_state, poll_rate=PollRate.FAST,
             on_change=Refresh((PointKey.TIMER_COUNTDOWN, *_FANS), after=3.0, until_stable=30.0),  # guess
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.TIMER_COUNTDOWN, 0x0B, 3, decode_seconds_minutes_hours, poll_rate=PollRate.MEDIUM,
             unit=Unit.SECONDS,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 0 s (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.HUMIDITY_SENSOR_ENABLED, 0x0F, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW,
             on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST), after=1.0),  # guess
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: on (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.HUMIDITY_THRESHOLD, 0x19, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
             unit=Unit.PERCENT, limits=_whole(40, 80),
             on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST), after=1.0),  # guess
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 60 % (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.RTC_BATTERY_VOLTAGE, 0x24, 2, decode_int, poll_rate=PollRate.RARE, unit=Unit.MILLIVOLT,
-            deadband=10, certainty=Certainty.VERIFIED,
+            deadband=10,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 3284 mV (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.HUMIDITY, 0x25, 1, decode_int, poll_rate=PollRate.MEDIUM, unit=Unit.PERCENT,
             on_change=Refresh((PointKey.HUMIDITY_OVER_THRESHOLD, PointKey.BOOST)),
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 46 % (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.MANUAL_SPEED, 0x44, 1, decode_int, int_encoder(1), poll_rate=PollRate.FAST,
             limits=_whole(0, 255), on_change=_FANS_SETTLE,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 39 (HairingX/duka_connect#26)
         ),
-        Point(PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20),
+        Point(
+            PointKey.FAN_RPM, 0x4A, 2, decode_int, poll_rate=PollRate.FAST, unit=Unit.RPM, deadband=20,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 240 rpm at speed 1 (HairingX/duka_connect#26)
+        ),
         Point(
             PointKey.FILTER_TIMER, 0x64, 3, decode_minutes_hours_days, poll_rate=PollRate.RARE,
             unit=Unit.MINUTES,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 63 d 8 h 48 min left (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.RESET_FILTER_TIMER, 0x65, 1, None, command_encoder(b"\x00"),
@@ -164,10 +178,12 @@ DUKA_ONE = DukaModel(
         Point(
             PointKey.BOOST_OFF_DELAY, 0x66, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
             unit=Unit.MINUTES, limits=_whole(0, 60),
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 30 min (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.OPERATING_TIME, 0x7E, 4, decode_operating_minutes, poll_rate=PollRate.RARE,
             unit=Unit.MINUTES,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 1038 d 21 h 2 min (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.RESET_ALARMS, 0x80, 1, None, command_encoder(b"\x00"),
@@ -180,25 +196,47 @@ DUKA_ONE = DukaModel(
                 (PointKey.RTC_BATTERY_VOLTAGE, PointKey.FILTER_REPLACE, PointKey.FILTER_TIMER),
                 after=10.0, until_stable=120.0,  # guess
             ),
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: no alarm (HairingX/duka_connect#26)
         ),
-        Point(PointKey.FIRMWARE_VERSION, 0x86, 6, decode_firmware_version, poll_rate=PollRate.STATIC),
-        Point(PointKey.FIRMWARE_DATE, 0x86, 6, decode_firmware_date, poll_rate=PollRate.STATIC),
+        Point(
+            PointKey.FIRMWARE_VERSION, 0x86, 6, decode_firmware_version, poll_rate=PollRate.STATIC,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 0.7 (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.FIRMWARE_DATE, 0x86, 6, decode_firmware_date, poll_rate=PollRate.STATIC,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 2021-10-04 (HairingX/duka_connect#26)
+        ),
         Point(
             PointKey.FILTER_REPLACE, 0x88, 1, decode_bool, poll_rate=PollRate.SLOW,
             on_change=Refresh((PointKey.FILTER_TIMER, PointKey.ALARM)),
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: fine (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.VENTILATION_MODE, 0xB7, 1, state_decoder(VentilationMode), encode_state,
             poll_rate=PollRate.FAST,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: heat recovery (HairingX/duka_connect#26)
         ),
-        Point(PointKey.UNIT_TYPE, 0xB9, 2, decode_int, poll_rate=PollRate.STATIC),
-        Point(PointKey.RELAY_SENSOR_ENABLED, 0x14, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
-        Point(PointKey.ANALOG_SENSOR_ENABLED, 0x16, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
+        Point(
+            PointKey.UNIT_TYPE, 0xB9, 2, decode_int, poll_rate=PollRate.STATIC,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 3 (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.RELAY_SENSOR_ENABLED, 0x14, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.ANALOG_SENSOR_ENABLED, 0x16, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
+        ),
         Point(
             PointKey.ANALOG_SENSOR_LEVEL, 0x2D, 1, decode_int, poll_rate=PollRate.MEDIUM, unit=Unit.PERCENT,
             on_change=Refresh((PointKey.ANALOG_SENSOR_OVER_THRESHOLD,)),
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 0 % (HairingX/duka_connect#26)
         ),
-        Point(PointKey.RELAY_SENSOR_ACTIVE, 0x32, 1, decode_bool, poll_rate=PollRate.MEDIUM),
+        Point(
+            PointKey.RELAY_SENSOR_ACTIVE, 0x32, 1, decode_bool, poll_rate=PollRate.MEDIUM,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
+        ),
         *(
             Point(
                 key, parameter, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
@@ -219,15 +257,31 @@ DUKA_ONE = DukaModel(
             unit=Unit.DAYS, limits=_whole(70, 365),
             on_change=Refresh((PointKey.FILTER_TIMER, PointKey.FILTER_REPLACE), after=1.0),  # guess
         ),
-        Point(PointKey.CLOCK_TIME, 0x6F, 3, decode_clock_time, encode_clock_time, poll_rate=PollRate.RARE),
-        Point(PointKey.CLOCK_DATE, 0x70, 4, decode_clock_date, encode_clock_date, poll_rate=PollRate.RARE),
-        Point(PointKey.WEEKLY_SCHEDULE, 0x72, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW),
-        Point(PointKey.CLOUD_ENABLED, 0x85, 1, decode_bool, encode_bool, poll_rate=PollRate.RARE),
-        Point(PointKey.IP_ADDRESS, 0xA3, 4, decode_ipv4, poll_rate=PollRate.RARE),
+        Point(
+            PointKey.CLOCK_TIME, 0x6F, 3, decode_clock_time, encode_clock_time, poll_rate=PollRate.RARE,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: the right time (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.CLOCK_DATE, 0x70, 4, decode_clock_date, encode_clock_date, poll_rate=PollRate.RARE,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: the right date (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.WEEKLY_SCHEDULE, 0x72, 1, decode_bool, encode_bool, poll_rate=PollRate.SLOW,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.CLOUD_ENABLED, 0x85, 1, decode_bool, encode_bool, poll_rate=PollRate.RARE,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: off (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.IP_ADDRESS, 0xA3, 4, decode_ipv4, poll_rate=PollRate.RARE,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: its address (HairingX/duka_connect#26)
+        ),
         Point(
             PointKey.ANALOG_SENSOR_THRESHOLD, 0xB8, 1, decode_int, int_encoder(1), poll_rate=PollRate.SLOW,
             unit=Unit.PERCENT, limits=_whole(5, 100),
             on_change=Refresh((PointKey.ANALOG_SENSOR_OVER_THRESHOLD,), after=1.0),  # guess
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 50 % (HairingX/duka_connect#26)
         ),
         Point(
             PointKey.RESTORE_FAN_SPEEDS, 0x012A, 1, None, command_encoder(b"\x01"),
@@ -242,11 +296,18 @@ DUKA_ONE = DukaModel(
             Point(
                 key, parameter, 2, decode_minutes_hours, encode_minutes_hours, poll_rate=PollRate.SLOW,
                 unit=Unit.MINUTES, limits=_whole(0, 23 * 60 + 59),
+                certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: 8 h and 4 h (HairingX/duka_connect#26)
             )
             for key, parameter in ((PointKey.REDUCED_DURATION, 0x0302), (PointKey.BOOST_DURATION, 0x0303))
         ),
-        Point(PointKey.HUMIDITY_OVER_THRESHOLD, 0x0304, 1, decode_bool, poll_rate=PollRate.MEDIUM),
-        Point(PointKey.ANALOG_SENSOR_OVER_THRESHOLD, 0x0305, 1, decode_bool, poll_rate=PollRate.MEDIUM),
+        Point(
+            PointKey.HUMIDITY_OVER_THRESHOLD, 0x0304, 1, decode_bool, poll_rate=PollRate.MEDIUM,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: not over (HairingX/duka_connect#26)
+        ),
+        Point(
+            PointKey.ANALOG_SENSOR_OVER_THRESHOLD, 0x0305, 1, decode_bool, poll_rate=PollRate.MEDIUM,
+            certainty=Certainty.VERIFIED,  # measured on the owner's Duka One: not over (HairingX/duka_connect#26)
+        ),
     ),
 )
 """A Duka One. A command is not answered, so nothing says when the unit has carried it out:

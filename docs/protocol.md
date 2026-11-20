@@ -3,8 +3,9 @@
 The unit answers UDP on port 4000. This page sets out the packet format and every point the
 library reads, as the manufacturer's connection guide describes them:
 `docs/models/protocol/vento-smart-home-connection-guide.pdf`, with its parameter table in
-`docs/models/protocol/parameters.csv`. A point read on a Duka One by this library is
-`Certainty.VERIFIED`, and says so below; every other is `Certainty.REPORTED`.
+`docs/models/protocol/parameters.csv`. A point read on a Duka One by this library, as what the
+guide says it is, is `Certainty.VERIFIED`, and says so below; every other is
+`Certainty.REPORTED`.
 
 ## Packets
 
@@ -32,46 +33,54 @@ A unit does not answer a wrong password, nor a write with function 02.
 
 ## Points
 
-| Key | Parameter | Bytes | Meaning | Write |
-|---|---|---|---|---|
-| `power` | `01` | 1 | 0 off, 1 on | yes |
-| `speed` | `02` | 1 | 1, 2 or 3, or 255 for the manual speed | yes |
-| `boost` | `06` | 1 | boost runs | |
-| `timer_mode` | `07` | 1 | 0 off, 1 reduced, 2 boost | yes |
-| `timer_countdown` | `0B` | 3 | seconds, minutes, hours left of the timer | |
-| `humidity_sensor_enabled` | `0F` | 1 | the humidity sensor may start boost | yes |
-| `humidity_threshold` | `19` | 1 | %RH that starts boost, 40 to 80 | yes |
-| `rtc_battery_voltage` | `24` | 2 | the clock's battery, 0 to 5000 mV; verified: a flat CR1220 read 90 mV, a new one 3330 mV | |
-| `humidity` | `25` | 1 | %RH | |
-| `manual_speed` | `44` | 1 | 0 to 255, used while `speed` is 255 | yes |
-| `fan_rpm` | `4A` | 2 | the fan's speed, 0 to 5000 rpm | |
-| `filter_timer` | `64` | 3 | minutes, hours, days until the filter is due | |
-| `reset_filter_timer` | `65` | 1 | command: start the filter timer again | command |
-| `boost_off_delay` | `66` | 1 | minutes boost runs on, 0 to 60 | yes |
-| `operating_time` | `7E` | 4 | minutes, hours, and days in two bytes the unit has run | |
-| `reset_alarms` | `80` | 1 | command: clear the alarms | command |
-| `alarm` | `83` | 1 | 0 none, 1 alarm, 2 warning | |
-| `firmware_version`, `firmware_date` | `86` | 6 | major, minor, day, month, year in two bytes | |
-| `filter_replace` | `88` | 1 | 0 the filter is fine, 1 replace it | |
-| `ventilation_mode` | `B7` | 1 | 0 ventilation, 1 heat recovery, 2 supply | yes |
-| `unit_type` | `B9` | 2 | the kind of unit | |
-| `relay_sensor_enabled` | `14` | 1 | the relay sensor may start boost | yes |
-| `analog_sensor_enabled` | `16` | 1 | the 0-10 V sensor may start boost | yes |
-| `analog_sensor_level` | `2D` | 1 | the 0-10 V sensor's signal, 0 to 100 % | |
-| `relay_sensor_active` | `32` | 1 | the relay sensor is on | |
-| `supply_speed_1` … `exhaust_speed_3` | `3A`-`3F` | 1 each | supply and exhaust fan speed at speeds 1 to 3, 10 to 255 | yes |
-| `fan2_rpm` | `4B` | 2 | the second fan's speed, 0 to 5000 rpm | |
-| `filter_interval` | `63` | 2 | days between filter changes, 70 to 365 | yes |
-| `clock_time` | `6F` | 3 | the unit's clock: seconds, minutes, hours | yes |
-| `clock_date` | `70` | 4 | the unit's calendar: day, weekday 1 (Monday) to 7, month, year in the century | yes |
-| `weekly_schedule` | `72` | 1 | the weekly schedule runs | yes |
-| `cloud_enabled` | `85` | 1 | the unit may use Duka's cloud | yes |
-| `ip_address` | `A3` | 4 | the unit's current IP address, its numbers in order | |
-| `analog_sensor_threshold` | `B8` | 1 | the 0-10 V signal that starts boost, 5 to 100 % | yes |
-| `restore_fan_speeds` | `012A` | 1 | command: the fan speeds of every speed back to the factory's, by the value 1 | command |
-| `reduced_duration`, `boost_duration` | `0302`, `0303` | 2 each | how long the reduced and boost timer modes run: minutes, hours | yes |
-| `humidity_over_threshold` | `0304` | 1 | the humidity is over its threshold | |
-| `analog_sensor_over_threshold` | `0305` | 1 | the 0-10 V signal is over its threshold | |
+| Key | Parameter | Bytes | Meaning | Write | Read on a Duka One |
+|---|---|---|---|---|---|
+| `power` | `01` | 1 | 0 off, 1 on | yes | verified: on |
+| `speed` | `02` | 1 | 1, 2 or 3, or 255 for the manual speed | yes | verified: 1 |
+| `boost` | `06` | 1 | boost runs | | verified: off |
+| `timer_mode` | `07` | 1 | 0 off, 1 reduced, 2 boost | yes | verified: 0 |
+| `timer_countdown` | `0B` | 3 | seconds, minutes, hours left of the timer | | verified: 0 s |
+| `humidity_sensor_enabled` | `0F` | 1 | the humidity sensor may start boost | yes | verified: on |
+| `humidity_threshold` | `19` | 1 | %RH that starts boost, 40 to 80 | yes | verified: 60 % |
+| `rtc_battery_voltage` | `24` | 2 | the clock's battery, 0 to 5000 mV; a flat CR1220 read 90 mV, a new one 3330 mV | | verified: 3284 mV |
+| `humidity` | `25` | 1 | %RH | | verified: 46 %, while another unit in the house read 47 % |
+| `manual_speed` | `44` | 1 | 0 to 255, used while `speed` is 255 | yes | verified: 39 |
+| `fan_rpm` | `4A` | 2 | the fan's speed, 0 to 5000 rpm | | verified: 240 rpm at speed 1 |
+| `filter_timer` | `64` | 3 | minutes, hours, days until the filter is due | | verified: 63 days, 8 h, 48 min, which fits the manual's 90-day filter cycle |
+| `reset_filter_timer` | `65` | 1 | command: start the filter timer again | command | |
+| `boost_off_delay` | `66` | 1 | minutes boost runs on, 0 to 60 | yes | verified: 30 min |
+| `operating_time` | `7E` | 4 | minutes, hours, and days in two bytes the unit has run | | verified: 1038 days, 21 h, 2 min |
+| `reset_alarms` | `80` | 1 | command: clear the alarms | command | |
+| `alarm` | `83` | 1 | 0 none, 1 alarm, 2 warning | | verified: 0 |
+| `firmware_version`, `firmware_date` | `86` | 6 | major, minor, day, month, year in two bytes | | verified: 0.7 of 2021-10-04 |
+| `filter_replace` | `88` | 1 | 0 the filter is fine, 1 replace it | | verified: 0 |
+| `ventilation_mode` | `B7` | 1 | 0 ventilation, 1 heat recovery, 2 supply | yes | verified: 1 |
+| `unit_type` | `B9` | 2 | the kind of unit | | verified: 3 |
+| `relay_sensor_enabled` | `14` | 1 | the relay sensor may start boost | yes | verified: off |
+| `analog_sensor_enabled` | `16` | 1 | the 0-10 V sensor may start boost | yes | verified: off |
+| `analog_sensor_level` | `2D` | 1 | the 0-10 V sensor's signal, 0 to 100 % | | verified: 0 % |
+| `relay_sensor_active` | `32` | 1 | the relay sensor is on | | verified: off |
+| `supply_speed_1` … `exhaust_speed_3` | `3A`-`3F` | 1 each | supply and exhaust fan speed at speeds 1 to 3, 10 to 255 | yes | not present (`FD`) |
+| `fan2_rpm` | `4B` | 2 | the second fan's speed, 0 to 5000 rpm | | read, 1500 at speed 1 while `fan_rpm` read 240: what it measures on a Duka One is not known |
+| `filter_interval` | `63` | 2 | days between filter changes, 70 to 365 | yes | not present (`FD`) |
+| `clock_time` | `6F` | 3 | the unit's clock: seconds, minutes, hours | yes | verified: the time it was read at |
+| `clock_date` | `70` | 4 | the unit's calendar: day, weekday 1 (Monday) to 7, month, year in the century | yes | verified: the day it was read on |
+| `weekly_schedule` | `72` | 1 | the weekly schedule runs | yes | verified: off |
+| `cloud_enabled` | `85` | 1 | the unit may use Duka's cloud | yes | verified: off |
+| `ip_address` | `A3` | 4 | the unit's current IP address, its numbers in order | | verified |
+| `analog_sensor_threshold` | `B8` | 1 | the 0-10 V signal that starts boost, 5 to 100 % | yes | verified: 50 % |
+| `restore_fan_speeds` | `012A` | 1 | command: the fan speeds of every speed back to the factory's, by the value 1 | command | |
+| `reduced_duration`, `boost_duration` | `0302`, `0303` | 2 each | how long the reduced and boost timer modes run: minutes, hours | yes | verified: 8 h and 4 h, the manual's night and party mode |
+| `humidity_over_threshold` | `0304` | 1 | the humidity is over its threshold | | verified: off |
+| `analog_sensor_over_threshold` | `0305` | 1 | the 0-10 V signal is over its threshold | | verified: off |
+
+*Read on a Duka One* is what the owner's Duka One answered on 2026-11-19, read by this library
+with quality `GOOD` ([#26](https://github.com/HairingX/duka_connect/issues/26)); its address is
+left out. Every point marked verified there is `Certainty.VERIFIED`, which says it has been read
+on a Duka One: no write has been confirmed on a unit yet, so for a point that can be written,
+only reading it is. `fan2_rpm` was read as well but stays `Certainty.REPORTED`, as what it
+measures on a Duka One is not known. The commands cannot be read, and stay `Certainty.REPORTED`
+until one is seen to work.
 
 A command is sent with function 02, which the unit does not answer, so nothing says when it has
 carried it out: the points it changes are read a second later. A setting is written with function
@@ -117,7 +126,8 @@ mode; the manual gives 8 hours for the first and 4 for the second, and the app s
 Pro 50 S Wi-Fi user manual, pages 15 and 20).
 
 The guide gives the separate fan speeds `3A`-`3F`, the filter interval `63` and the restore
-command `012A` for some models only; a unit without them answers `FD`, and they are `MISSING`.
+command `012A` for some models only; a unit without them answers `FD`, and they are `MISSING`. A
+Duka One answers `FD` for `3A`-`3F` and `63`.
 
 Left out on purpose: the password `7D` and the Wi-Fi settings `94`-`A2`, as writing them can
 lock out every client or take the unit off the network; restoring the factory settings `87`;
@@ -126,11 +136,17 @@ only.
 
 ## Not known yet
 
-- **The unit type a Duka One reports.** The guide lists 3, 4, 5, 14 and 26-28 for Blauberg's
-  own units, none of them a Duka One. `connect()` accepts any unit that reports a unit type;
-  the live test prints it, and once known, other units can be refused as unsupported.
+- **Whether every Duka One reports unit type 3.** The owner's Duka One, with firmware 0.7 of
+  2021-10-04, reports 3, which the guide lists for Blauberg's VENTO Expert A50-1/A85-1/A100-1 W
+  V.2; it lists 4, 5, 14 and 26-28 for other units of Blauberg's own. Until other Duka Ones,
+  models and firmware are known to report 3 as well, `connect()` accepts any unit that reports a
+  unit type; the live test prints it.
 - **The battery voltage at which the app reports a flat battery.** Duka's app reports a CR1220
   to replace; `rtc_battery_voltage` read 90 mV while it did, and a new cell 3330 mV, but no
   document gives the threshold in between.
 - **Which parameters a Duka One has.** The guide's table is for Blauberg's VENTO units; a unit
-  without a parameter answers `FD`, and the point is `MISSING`.
+  without a parameter answers `FD`, and the point is `MISSING`. The owner's Duka One has every
+  point above but `3A`-`3F` and `63`; the commands have not been sent to it.
+- **What `fan2_rpm` measures on a Duka One.** It read 1500 at speed 1, while `fan_rpm` read 240.
+- **Whether writes work as the guide says.** Every point that can be written has been read on a
+  Duka One, but none written.
