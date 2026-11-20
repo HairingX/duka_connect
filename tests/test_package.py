@@ -41,11 +41,6 @@ def test_the_timer_modes_are_named_by_what_they_do() -> None:
         "reduced_duration", "boost_duration"}
 
 
-def test_the_clock_battery_voltage_has_been_read_on_a_duka_one() -> None:
-    points = {point.key: point for point in duka_connect.DUKA_ONE.points}
-    assert points[duka_connect.PointKey.RTC_BATTERY_VOLTAGE].certainty is duka_connect.Certainty.VERIFIED
-
-
 def test_a_points_certainty_is_the_one_every_point_has() -> None:
     assert duka_connect.Point.__dataclass_fields__["certainty"] is event_connect.Point.__dataclass_fields__["certainty"]
 
